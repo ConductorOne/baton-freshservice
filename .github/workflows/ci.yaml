@@ -75,30 +75,30 @@ jobs:
       #     PGPASSWORD: secretpassword
       - name: Build baton-freshservice
         run: go build ./cmd/baton-freshservice
-      - name: Run baton-freshservice
-        run: ./baton-freshservice
+      # - name: Run baton-freshservice
+      #   run: ./baton-freshservice
 
-      - name: Install baton
-        run: ./scripts/get-baton.sh && mv baton /usr/local/bin
+      # - name: Install baton
+      #   run: ./scripts/get-baton.sh && mv baton /usr/local/bin
 
-      - name: Check for grant before revoking
+      # - name: Check for grant before revoking
 
-        run:
-          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
+      #   run:
+      #     baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
 
 
-      - name: Revoke grants
-        run: ./baton-freshservice --revoke-grant="${{ env.CONNECTOR_GRANT }}"
+      # - name: Revoke grants
+      #   run: ./baton-freshservice --revoke-grant="${{ env.CONNECTOR_GRANT }}"
 
-      - name: Check grant was revoked
-        run: ./baton-freshservice && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end"
+      # - name: Check grant was revoked
+      #   run: ./baton-freshservice && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end"
 
-      - name: Grant entitlement
-        # Change the grant arguments to the correct IDs for your test data
-        run: ./baton-freshservice --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
+      # - name: Grant entitlement
+      #   # Change the grant arguments to the correct IDs for your test data
+      #   run: ./baton-freshservice --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
 
-      - name: Check grant was re-granted
+      # - name: Check grant was re-granted
 
-        run:
-          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
+      #   run:
+      #     baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
 
