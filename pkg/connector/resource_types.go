@@ -4,6 +4,8 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
+const ITEMSPERPAGE = 1000
+
 // The user resource type is for all user objects from the database.
 var userResourceType = &v2.ResourceType{
 	Id:          "user",

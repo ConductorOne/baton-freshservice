@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,6 +44,15 @@ func WithSetBearerAuthHeader(token string) uhttp.RequestOption {
 	return uhttp.WithHeader("Authorization", "Bearer "+token)
 }
 
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func WithSetBasicAuth(username, password string) uhttp.RequestOption {
+	return uhttp.WithHeader("Authorization", "Basic "+basicAuth(username, password))
+}
+
 func (f *FreshServiceClient) getToken() string {
 	return f.auth.bearerToken
 }
@@ -71,7 +81,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return freshServiceClient, err
 	}
 
-	baseUrl := fmt.Sprintf("https://%s.freshdesk.com/api/v2/", domain)
+	baseUrl := fmt.Sprintf("https://%s.freshdesk.com/api/v2", domain)
 	if !isValidUrl(baseUrl) {
 		return nil, fmt.Errorf("the url : %s is not valid", baseUrl)
 	}
@@ -105,35 +115,42 @@ func WithResponse(resp *http.Response, v any) error {
 
 // GetUsers. List All Agents.
 // https://developers.freshdesk.com/api/#agents
-func (c *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, error) {
-	agentsUrl, err := url.JoinPath(c.baseUrl, "agents")
+func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
 	if err != nil {
 		return nil, err
 	}
 
 	var res *AgentsAPIData
-	if err := c.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func (c *FreshServiceClient) doRequest(ctx context.Context, url string, res interface{}) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func (f *FreshServiceClient) doRequest(ctx context.Context, endpointUrl string, res interface{}) error {
+	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.getToken()))
-	resp, err := c.httpClient.Do(req)
+	req, err := f.httpClient.NewRequest(ctx,
+		http.MethodGet,
+		urlAddress,
+		uhttp.WithAcceptJSONHeader(),
+		WithSetBasicAuth(f.getToken(), "X"),
+	)
+	if err != nil {
+		return err
+	}
+
+	resp, err := f.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 
 	defer resp.Body.Close()
-
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return err
 	}
