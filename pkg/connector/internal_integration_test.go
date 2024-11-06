@@ -39,3 +39,38 @@ func TestUserBuilderList(t *testing.T) {
 	_, _, _, err = u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
 	require.Nil(t, err)
 }
+
+func TestGroupBuilderList(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	g := &groupBuilder{
+		resourceType: resourceTypeGroup,
+		client:       cliTest,
+	}
+
+	_, _, _, err = g.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
+	require.Nil(t, err)
+}
+
+func TestGroupGrants(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	d := &groupBuilder{
+		resourceType: resourceTypeGroup,
+		client:       cliTest,
+	}
+	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{ResourceType: resourceTypeGroup.Id, Resource: "156000164892"},
+	}, &pagination.Token{})
+	require.Nil(t, err)
+}

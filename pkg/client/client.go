@@ -3,9 +3,7 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 
@@ -40,8 +38,12 @@ func (f *FreshServiceClient) WithDomain(domain string) *FreshServiceClient {
 	return f
 }
 
-func WithSetBearerAuthHeader(token string) uhttp.RequestOption {
-	return uhttp.WithHeader("Authorization", "Bearer "+token)
+func (f *FreshServiceClient) getToken() string {
+	return f.auth.bearerToken
+}
+
+func (f *FreshServiceClient) getDomain() string {
+	return f.domain
 }
 
 func basicAuth(username, password string) string {
@@ -51,14 +53,6 @@ func basicAuth(username, password string) string {
 
 func WithSetBasicAuth(username, password string) uhttp.RequestOption {
 	return uhttp.WithHeader("Authorization", "Basic "+basicAuth(username, password))
-}
-
-func (f *FreshServiceClient) getToken() string {
-	return f.auth.bearerToken
-}
-
-func (f *FreshServiceClient) getDomain() string {
-	return f.domain
 }
 
 func isValidUrl(baseUrl string) bool {
@@ -99,20 +93,6 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func WithResponse(resp *http.Response, v any) error {
-	bytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(bytes, v)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // GetUsers. List All Agents.
 // https://developers.freshdesk.com/api/#agents
 func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, error) {
@@ -122,6 +102,38 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, erro
 	}
 
 	var res *AgentsAPIData
+	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// GetGroups. List All Groups.
+// https://developers.freshdesk.com/api/#groups
+func (f *FreshServiceClient) GetGroups(ctx context.Context) (*GroupsAPIData, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups")
+	if err != nil {
+		return nil, err
+	}
+
+	var res *GroupsAPIData
+	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// GetGroups. List All Groups.
+// https://developers.freshdesk.com/api/#groups
+func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (*Group, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId)
+	if err != nil {
+		return nil, err
+	}
+
+	var res *Group
 	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
 		return nil, err
 	}
@@ -145,15 +157,11 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, endpointUrl string, 
 		return err
 	}
 
-	resp, err := f.httpClient.Do(req)
+	resp, err := f.httpClient.Do(req, uhttp.WithResponse(&res))
 	if err != nil {
 		return err
 	}
 
 	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return err
-	}
-
 	return nil
 }

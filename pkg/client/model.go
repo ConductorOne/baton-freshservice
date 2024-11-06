@@ -39,3 +39,25 @@ type Contact struct {
 	CreatedAt   time.Time `json:"created_at,omitempty"`
 	UpdatedAt   time.Time `json:"updated_at,omitempty"`
 }
+
+type GroupsAPIData []Group
+
+type Group struct {
+	ID                              int64                    `json:"id,omitempty"`
+	Name                            string                   `json:"name,omitempty"`
+	Description                     interface{}              `json:"description,omitempty"`
+	EscalateTo                      interface{}              `json:"escalate_to,omitempty"`
+	UnassignedFor                   interface{}              `json:"unassigned_for,omitempty"`
+	AgentIDs                        []int64                  `json:"agent_ids,omitempty"`
+	CreatedAt                       time.Time                `json:"created_at,omitempty"`
+	UpdatedAt                       time.Time                `json:"updated_at,omitempty"`
+	AllowAgentsToChangeAvailability bool                     `json:"allow_agents_to_change_availability,omitempty"`
+	AgentAvailabilityStatus         bool                     `json:"agent_availability_status,omitempty"`
+	BusinessCalendarID              int64                    `json:"business_calendar_id,omitempty"`
+	Type                            string                   `json:"type,omitempty"`
+	AutomaticAgentAssignment        AutomaticAgentAssignment `json:"automatic_agent_assignment,omitempty"`
+}
+
+type AutomaticAgentAssignment struct {
+	Enabled bool `json:"enabled,omitempty"`
+}

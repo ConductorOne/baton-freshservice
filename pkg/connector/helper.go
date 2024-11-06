@@ -7,6 +7,8 @@ import (
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
@@ -67,4 +69,32 @@ func splitFullName(name string) (string, string) {
 	}
 
 	return firstName, lastName
+}
+
+// Create a new connector resource for FreshService.
+func groupResource(ctx context.Context, group *client.Group, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]interface{}{
+		"group_id":   group.ID,
+		"group_name": group.Name,
+		"group_type": group.Type,
+	}
+	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
+	resource, err := rs.NewGroupResource(
+		group.Name,
+		resourceTypeGroup,
+		group.ID,
+		groupTraitOptions,
+		rs.WithParentResourceID(parentResourceID),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
+}
+
+func titleCase(s string) string {
+	titleCaser := cases.Title(language.English)
+
+	return titleCaser.String(s)
 }
