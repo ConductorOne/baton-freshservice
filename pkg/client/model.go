@@ -61,3 +61,33 @@ type Group struct {
 type AutomaticAgentAssignment struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
+
+type RolesAPIData []Role
+type Role struct {
+	ID          int64     `json:"id,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Default     bool      `json:"default,omitempty"`
+	CreatedAt   time.Time `json:"created_at,omitempty"`
+	UpdatedAt   time.Time `json:"updated_at,omitempty"`
+	AgentType   int       `json:"agent_type,omitempty"`
+}
+
+type GroupRolesAPIData []GroupRoles
+
+type GroupContact struct {
+	Name   string   `json:"name,omitempty"`
+	Avatar struct{} `json:"avatar,omitempty"`
+	Email  string   `json:"email,omitempty"`
+}
+
+type GroupRoles struct {
+	ID          int64        `json:"id,omitempty"`
+	TicketScope int          `json:"ticket_scope,omitempty"`
+	WriteAccess bool         `json:"write_access,omitempty"`
+	RoleIDs     []int64      `json:"role_ids,omitempty"`
+	Contact     GroupContact `json:"contact,omitempty"`
+	CreatedAt   time.Time    `json:"created_at,omitempty"`
+	UpdatedAt   time.Time    `json:"updated_at,omitempty"`
+	Deactivated bool         `json:"deactivated,omitempty"`
+}

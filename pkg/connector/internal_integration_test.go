@@ -23,7 +23,7 @@ func getClientForTesting(ctx context.Context) (*client.FreshServiceClient, error
 	return client.New(ctx, fsClient)
 }
 
-func TestUserBuilderList(t *testing.T) {
+func TestUsersBuilderList(t *testing.T) {
 	if apiKey == "" && domain == "" {
 		t.Skip()
 	}
@@ -35,12 +35,11 @@ func TestUserBuilderList(t *testing.T) {
 		resourceType: userResourceType,
 		client:       cliTest,
 	}
-
 	_, _, _, err = u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
 	require.Nil(t, err)
 }
 
-func TestGroupBuilderList(t *testing.T) {
+func TestGroupsBuilderList(t *testing.T) {
 	if apiKey == "" && domain == "" {
 		t.Skip()
 	}
@@ -52,8 +51,23 @@ func TestGroupBuilderList(t *testing.T) {
 		resourceType: resourceTypeGroup,
 		client:       cliTest,
 	}
-
 	_, _, _, err = g.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
+	require.Nil(t, err)
+}
+
+func TestRolesBuilderList(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	r := &roleBuilder{
+		resourceType: resourceTypeRole,
+		client:       cliTest,
+	}
+	_, _, _, err = r.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
 	require.Nil(t, err)
 }
 
@@ -71,6 +85,24 @@ func TestGroupGrants(t *testing.T) {
 	}
 	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{ResourceType: resourceTypeGroup.Id, Resource: "156000164892"},
+	}, &pagination.Token{})
+	require.Nil(t, err)
+}
+
+func TestRoleGrants(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	r := &roleBuilder{
+		resourceType: resourceTypeRole,
+		client:       cliTest,
+	}
+	_, _, _, err = r.Grants(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{ResourceType: resourceTypeRole.Id, Resource: "156001103433"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }

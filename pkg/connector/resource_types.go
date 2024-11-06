@@ -10,14 +10,22 @@ var (
 	userResourceType = &v2.ResourceType{
 		Id:          "user",
 		DisplayName: "User",
+		Description: "Users of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
 	}
 
 	resourceTypeGroup = &v2.ResourceType{
 		Id:          "group",
 		DisplayName: "Group",
+		Description: "Groups of FreshService",
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_GROUP,
 		},
+	}
+	resourceTypeRole = &v2.ResourceType{
+		Id:          "role",
+		DisplayName: "Role",
+		Description: "Roles of FreshService",
+		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
 	}
 )
