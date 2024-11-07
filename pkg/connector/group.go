@@ -97,7 +97,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 func newGroupBuilder(c *client.FreshServiceClient) *groupBuilder {
 	return &groupBuilder{
-		resourceType: resourceTypeGroup,
+		resourceType: groupResourceType,
 		client:       c,
 	}
 }

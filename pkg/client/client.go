@@ -159,19 +159,35 @@ func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (
 
 // GetAgentsByGroupId. List All Agents in a Group.
 // https://developers.freshdesk.com/api/#groups
-func (f *FreshServiceClient) GetAgentsByGroupId(ctx context.Context, groupId string) (*GroupRolesAPIData, error) {
+func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*[]GroupRoles, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
 	if err != nil {
 		return nil, err
 	}
 
-	var res *GroupRolesAPIData
+	var res *[]GroupRoles
 	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
+
+// GetAgentDetail. Get agent detail.
+func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailsAPIData, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
+	if err != nil {
+		return nil, err
+	}
+
+	var res *AgentDetailsAPIData
+	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (f *FreshServiceClient) doRequest(ctx context.Context, endpointUrl string, res interface{}) error {
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {

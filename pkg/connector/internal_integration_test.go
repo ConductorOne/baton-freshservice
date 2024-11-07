@@ -48,7 +48,7 @@ func TestGroupsBuilderList(t *testing.T) {
 	require.Nil(t, err)
 
 	g := &groupBuilder{
-		resourceType: resourceTypeGroup,
+		resourceType: groupResourceType,
 		client:       cliTest,
 	}
 	_, _, _, err = g.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
@@ -80,11 +80,11 @@ func TestGroupGrants(t *testing.T) {
 	require.Nil(t, err)
 
 	d := &groupBuilder{
-		resourceType: resourceTypeGroup,
+		resourceType: groupResourceType,
 		client:       cliTest,
 	}
 	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: resourceTypeGroup.Id, Resource: "156000164892"},
+		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "156000164892"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -101,8 +101,18 @@ func TestRoleGrants(t *testing.T) {
 		resourceType: resourceTypeRole,
 		client:       cliTest,
 	}
-	_, _, _, err = r.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: resourceTypeRole.Id, Resource: "156001103433"},
-	}, &pagination.Token{})
-	require.Nil(t, err)
+
+	var token = "{}"
+	for token != "" {
+		_, tk, _, err := r.Grants(ctxTest, &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: resourceTypeRole.Id,
+				Resource:     "156001103433",
+			},
+		}, &pagination.Token{
+			Token: token,
+		})
+		require.Nil(t, err)
+		token = tk
+	}
 }

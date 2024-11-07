@@ -2,10 +2,12 @@ package connector
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -81,7 +83,7 @@ func groupResource(ctx context.Context, group *client.Group, parentResourceID *v
 	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
 	resource, err := rs.NewGroupResource(
 		group.Name,
-		resourceTypeGroup,
+		groupResourceType,
 		group.ID,
 		groupTraitOptions,
 		rs.WithParentResourceID(parentResourceID),
@@ -97,4 +99,22 @@ func titleCase(s string) string {
 	titleCaser := cases.Title(language.English)
 
 	return titleCaser.String(s)
+}
+
+func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error) {
+	b := &pagination.Bag{}
+	err := b.Unmarshal(token.Token)
+	if err != nil {
+		return 0, nil, err
+	}
+	current := b.Current()
+	skip := int32(0)
+	if current != nil && current.Token != "" {
+		skip64, err := strconv.ParseInt(current.Token, 10, 32)
+		if err != nil {
+			return 0, nil, err
+		}
+		skip = int32(skip64)
+	}
+	return skip, b, nil
 }

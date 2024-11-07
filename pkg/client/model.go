@@ -91,3 +91,34 @@ type GroupRoles struct {
 	UpdatedAt   time.Time    `json:"updated_at,omitempty"`
 	Deactivated bool         `json:"deactivated,omitempty"`
 }
+
+type AgentDetailsAPIData struct {
+	ID                      int64          `json:"id,omitempty"`
+	OrgAgentID              string         `json:"org_agent_id,omitempty"`
+	GroupIDs                []int64        `json:"group_ids,omitempty"`
+	OrgGroupIDs             []any          `json:"org_group_ids,omitempty"`
+	Deactivated             bool           `json:"deactivated,omitempty"`
+	Available               bool           `json:"available,omitempty"`
+	AvailableSince          any            `json:"available_since,omitempty"`
+	Occasional              bool           `json:"occasional,omitempty"`
+	TicketScope             int            `json:"ticket_scope,omitempty"`
+	RoleIDs                 []int64        `json:"role_ids,omitempty"`
+	SkillIDs                []any          `json:"skill_ids,omitempty"`
+	Type                    string         `json:"type,omitempty"`
+	LastActiveAt            time.Time      `json:"last_active_at,omitempty"`
+	CreatedAt               time.Time      `json:"created_at,omitempty"`
+	UpdatedAt               time.Time      `json:"updated_at,omitempty"`
+	ContributionGroupIDs    []any          `json:"contribution_group_ids,omitempty"`
+	OrgContributionGroupIDs []any          `json:"org_contribution_group_ids,omitempty"`
+	Signature               any            `json:"signature,omitempty"`
+	Contact                 Contact        `json:"contact,omitempty"`
+	Scope                   int            `json:"scope,omitempty"`
+	Availability            []Availability `json:"availability,omitempty"`
+	FocusMode               bool           `json:"focus_mode,omitempty"`
+}
+
+type Availability struct {
+	Channel        string    `json:"channel,omitempty"`
+	Available      bool      `json:"available,omitempty"`
+	AvailableSince time.Time `json:"available_since,omitempty"`
+}
