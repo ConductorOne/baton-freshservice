@@ -174,7 +174,7 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	return res, nil
 }
 
-func (f *FreshServiceClient) AddAgentsToGroup(ctx context.Context, groupId, userId string) (any, error) {
+func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
 		body struct {
 			Agents []struct {
@@ -202,7 +202,7 @@ func (f *FreshServiceClient) AddAgentsToGroup(ctx context.Context, groupId, user
 	return statusCode, nil
 }
 
-func (f *FreshServiceClient) RemoveAgentsToGroup(ctx context.Context, groupId, userId string) (any, error) {
+func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
 		body struct {
 			Agents []struct {
