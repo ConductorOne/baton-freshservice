@@ -64,8 +64,8 @@ jobs:
           BATON_FRESHSERVICE: ./baton-freshservice
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
           BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
-          CONNECTOR_GRANT: 'group:156000164892:member:user:156001103433'
-          CONNECTOR_ENTITLEMENT: 'group:156000164892:member'
-          CONNECTOR_PRINCIPAL_TYPE: 'user'
-          CONNECTOR_PRINCIPAL: '156001103433'
+          BATON_GRANT: 'group:156000164892:member:user:156001103433'
+          BATON_ENTITLEMENT: 'group:156000164892:member'
+          BATON_PRINCIPAL_TYPE: 'user'
+          BATON_PRINCIPAL: '156001103433'
         run: ./test/grant-revoke.sh
