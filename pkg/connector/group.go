@@ -103,7 +103,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 
 	groupId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	statusCode, err := g.client.AddAgentsToGroup(ctx, groupId, userId)
+	statusCode, err := g.client.AddAgentToGroup(ctx, groupId, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	statusCode, err := g.client.RemoveAgentsToGroup(ctx, groupId, userId)
+	statusCode, err := g.client.RemoveAgentFromGroup(ctx, groupId, userId)
 	if err != nil {
 		return nil, err
 	}
