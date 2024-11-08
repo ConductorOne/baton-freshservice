@@ -41,13 +41,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BATON_LOG_LEVEL: debug
-      BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-      BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
-      # The following parameters are passed to grant/revoke commands
-      CONNECTOR_GRANT: 'group:156000164892:member:user:156001103433'
-      CONNECTOR_ENTITLEMENT: 'group:156000164892:member'
-      CONNECTOR_PRINCIPAL_TYPE: 'user'
-      CONNECTOR_PRINCIPAL: '156001103433'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -63,19 +56,14 @@ jobs:
         run: ./baton-freshservice
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
-      - name: Check for grant before revoking
-        run: |
-          ./baton-freshservice && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[] | select( .principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
-      - name: Revoke grants
-        run: |
-          ./baton-freshservice && ./baton-freshservice --revoke-grant ${{ env.CONNECTOR_GRANT }}
-      - name: Check grant was revoked
-        run: |
-           ./baton-freshservice && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end"
-      - name: Grant entitlement
-        run: | 
-          ./baton-freshservice && ./baton-freshservice --grant-entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --grant-principal-type ${{ env.CONNECTOR_PRINCIPAL_TYPE }} --grant-principal ${{ env.CONNECTOR_PRINCIPAL }}  --provisioning
-      - name: Check grant was re-granted
-        run: |
-          ./baton-freshservice && baton grants --entitlement ${{ env.CONNECTOR_ENTITLEMENT }} --output-format=json | jq -e ".grants | any(.principal.id.resource ==\"${{ env.CONNECTOR_PRINCIPAL }}\")"
-
+      - name: Test grant/revoking 
+        env:
+          BATON: ./baton/baton
+          BATON_FRESHSERVICE: ./baton-freshservice
+          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
+          BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
+          CONNECTOR_GRANT: 'group:156000164892:member:user:156001103433'
+          CONNECTOR_ENTITLEMENT: 'group:156000164892:member'
+          CONNECTOR_PRINCIPAL_TYPE: 'user'
+          CONNECTOR_PRINCIPAL: '156001103433'
+        run: ./test/grant-revoke.sh
