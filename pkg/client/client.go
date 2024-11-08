@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -102,7 +103,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, erro
 	}
 
 	var res *AgentsAPIData
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -118,7 +119,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context) (*GroupsAPIData, err
 	}
 
 	var res *GroupsAPIData
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -134,7 +135,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context) (*RolesAPIData, error
 	}
 
 	var res *RolesAPIData
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -150,7 +151,7 @@ func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (
 	}
 
 	var res *Group
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -166,11 +167,68 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	}
 
 	var res *[]GroupRoles
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
 	return res, nil
+}
+
+func (f *FreshServiceClient) AddAgentsToGroup(ctx context.Context, groupId, userId string) (any, error) {
+	var (
+		body struct {
+			Agents []struct {
+				ID int `json:"id"`
+			} `json:"agents"`
+		}
+		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s}] }`, userId))
+		res, statusCode any
+	)
+
+	err := json.Unmarshal(payload, &body)
+	if err != nil {
+		return nil, err
+	}
+
+	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
+	if err != nil {
+		return nil, err
+	}
+
+	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+		return statusCode, err
+	}
+
+	return statusCode, nil
+}
+
+func (f *FreshServiceClient) RemoveAgentsToGroup(ctx context.Context, groupId, userId string) (any, error) {
+	var (
+		body struct {
+			Agents []struct {
+				ID      int  `json:"id"`
+				Deleted bool `json:"deleted"`
+			} `json:"agents"`
+		}
+		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s, "deleted": true}] }`, userId))
+		res, statusCode any
+	)
+
+	err := json.Unmarshal(payload, &body)
+	if err != nil {
+		return nil, err
+	}
+
+	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
+	if err != nil {
+		return nil, err
+	}
+
+	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+		return statusCode, err
+	}
+
+	return statusCode, nil
 }
 
 // GetAgentDetail. Get agent detail.
@@ -181,34 +239,46 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	}
 
 	var res *AgentDetailsAPIData
-	if err := f.doRequest(ctx, agentsUrl, &res); err != nil {
+	if err, _ = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func (f *FreshServiceClient) doRequest(ctx context.Context, endpointUrl string, res interface{}) error {
+func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (error, any) {
+	var (
+		resp *http.Response
+		err  error
+	)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	req, err := f.httpClient.NewRequest(ctx,
-		http.MethodGet,
+		method,
 		urlAddress,
 		uhttp.WithAcceptJSONHeader(),
 		WithSetBasicAuth(f.getToken(), "X"),
+		uhttp.WithJSONBody(body),
 	)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	resp, err := f.httpClient.Do(req, uhttp.WithResponse(&res))
+	switch method {
+	case http.MethodGet:
+		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
+		defer resp.Body.Close()
+	case http.MethodPatch:
+		resp, err = f.httpClient.Do(req)
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	defer resp.Body.Close()
-	return nil
+	return nil, resp.StatusCode
 }
