@@ -60,7 +60,7 @@ jobs:
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
       - name: Test grant/revoking 
         env:
-          BATON: ./baton/baton
+          BATON: ./baton
           BATON_FRESHSERVICE: ./baton-freshservice
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
           BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
