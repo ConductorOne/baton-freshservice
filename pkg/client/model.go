@@ -122,3 +122,41 @@ type Availability struct {
 	Available      bool      `json:"available,omitempty"`
 	AvailableSince time.Time `json:"available_since,omitempty"`
 }
+
+type AccountAPIData struct {
+	OrganisationID   int64         `json:"organisation_id,omitempty"`
+	OrganisationName string        `json:"organisation_name,omitempty"`
+	AccountID        int           `json:"account_id,omitempty"`
+	AccountName      string        `json:"account_name,omitempty"`
+	AccountDomain    string        `json:"account_domain,omitempty"`
+	BundleID         any           `json:"bundle_id,omitempty"`
+	CloudType        any           `json:"cloud_type,omitempty"`
+	HipaaCompliant   bool          `json:"hipaa_compliant"`
+	TotalAgents      TotalAgents   `json:"total_agents,omitempty"`
+	Timezone         string        `json:"timezone,omitempty"`
+	DataCenter       string        `json:"data_center,omitempty"`
+	TierType         string        `json:"tier_type,omitempty"`
+	Address          Address       `json:"address,omitempty"`
+	ContactPerson    ContactPerson `json:"contact_person,omitempty"`
+}
+
+type ContactPerson struct {
+	Firstname string `json:"firstname,omitempty"`
+	Lastname  string `json:"lastname,omitempty"`
+	Email     string `json:"email,omitempty"`
+}
+
+type Address struct {
+	Country    any `json:"country,omitempty"`
+	State      any `json:"state,omitempty"`
+	City       any `json:"city,omitempty"`
+	Street     any `json:"street,omitempty"`
+	Postalcode any `json:"postalcode,omitempty"`
+}
+
+type TotalAgents struct {
+	FullTime      int `json:"full_time,omitempty"`
+	Occasional    int `json:"occasional,omitempty"`
+	FieldService  int `json:"field_service,omitempty"`
+	Collaborators int `json:"collaborators,omitempty"`
+}

@@ -282,3 +282,19 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 
 	return nil, resp.StatusCode
 }
+
+// GetAccount. View Account.
+// https://developers.freshdesk.com/api/#account
+func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "account")
+	if err != nil {
+		return nil, err
+	}
+
+	var res *AccountAPIData
+	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

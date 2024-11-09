@@ -28,4 +28,9 @@ var (
 		Description: "Roles of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
 	}
+	accountResourceType = &v2.ResourceType{
+		Id:          "account",
+		DisplayName: "Account",
+		Description: "Accounts of FreshService",
+	}
 )

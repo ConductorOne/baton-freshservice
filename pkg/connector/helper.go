@@ -118,3 +118,37 @@ func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error)
 	}
 	return skip, b, nil
 }
+
+func accountResource(ctx context.Context, account *client.AccountAPIData, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	var opts []rs.ResourceOption
+	profile := map[string]interface{}{
+		"organisation_id":          account.OrganisationID,
+		"organisation_name":        account.OrganisationName,
+		"account_id":               account.AccountID,
+		"account_name":             account.AccountName,
+		"account_domain":           account.AccountDomain,
+		"contact_person_firstname": account.ContactPerson.Firstname,
+		"contact_person_lastname":  account.ContactPerson.Lastname,
+		"contact_person_email":     account.ContactPerson.Email,
+		"tier_type":                account.TierType,
+		"data_center":              account.DataCenter,
+		"timezone":                 account.Timezone,
+	}
+
+	accountTraitOptions := []rs.AppTraitOption{
+		rs.WithAppProfile(profile),
+	}
+
+	opts = append(opts, rs.WithAppTrait(accountTraitOptions...))
+	resource, err := rs.NewResource(
+		account.AccountName,
+		accountResourceType,
+		account.AccountID,
+		opts...,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
+}
