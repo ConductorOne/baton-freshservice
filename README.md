@@ -38,6 +38,9 @@ baton resources
 
 `baton-freshservice` will pull down information about the following resources:
 - Users
+- Groups
+- Roles
+- Account
 
 # Contributing, Support and Issues
 
