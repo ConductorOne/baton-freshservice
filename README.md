@@ -8,11 +8,9 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
-Freshservice is an online IT service desk with a fresh twist. It puts a refreshing user experience on  top of powerful ticketing and asset management capabilities, and is the most user friendly app in the space. 
+Freshservice is an online IT service desk with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [www.freshservice.com](https://www.freshworks.com) and click on the Sign up button on the top right corner. You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. 
 
-When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [www.freshservice.com](https://www.freshworks.com) and click on the Sign up button on the top right corner. You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. 
-
-Once you’re done with filling all the details, click on Sign up for FREE. You’ll be taken into your account, where you will asked to setup your service desk. 
+Once you’re done with filling all the details, click on Sign up for FREE. 
 
 ## Prerequisites
 
