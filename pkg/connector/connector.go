@@ -34,7 +34,7 @@ func (d *Connector) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.R
 func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
 		DisplayName: "FreshService Connector",
-		Description: "Connector syncing users, groups, projects from FreshService.",
+		Description: "Connector syncing users, groups and account from FreshService.",
 	}, nil
 }
 
