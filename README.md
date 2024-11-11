@@ -8,6 +8,16 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
+Freshservice is an online IT service desk with a fresh twist. It puts a refreshing user experience on  top of powerful ticketing and asset management capabilities, and is the most user friendly app in the space. 
+
+When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [www.freshservice.com](https://www.freshworks.com) and click on the Sign up button on the top right corner. You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. 
+
+Once you’re done with filling all the details, click on Sign up for FREE. You’ll be taken into your account, where you will asked to setup your service desk. 
+
+## Prerequisites
+
+API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
+
 ## brew
 
 ```
@@ -19,7 +29,7 @@ baton resources
 ## docker
 
 ```
-docker run --rm -v $(pwd):/out -e BATON_DOMAIN_URL=domain_url -e BATON_API_KEY=apiKey -e BATON_USERNAME=username ghcr.io/conductorone/baton-freshservice:latest -f "/out/sync.c1z"
+docker run --rm -v $(pwd):/out -e BATON_DOMAIN=<domain> -e BATON_API_KEY=<apiKey> ghcr.io/conductorone/baton-freshservice:latest -f "/out/sync.c1z"
 docker run --rm -v $(pwd):/out ghcr.io/conductorone/baton:latest -f "/out/sync.c1z" resources
 ```
 
