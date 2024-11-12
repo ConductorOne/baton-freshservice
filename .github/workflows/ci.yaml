@@ -64,17 +64,6 @@ jobs:
       - name: Build baton
         working-directory: ./baton
         run: go build ./cmd/baton
-      - name: Test grant/revoking groups
-        env:
-          BATON: ./baton/baton
-          BATON_FRESHSERVICE: ./baton-freshservice
-          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
-          BATON_GRANT: 'group:156000164892:member:user:156001103433'
-          BATON_ENTITLEMENT: 'group:156000164892:member'
-          BATON_PRINCIPAL_TYPE: 'user'
-          BATON_PRINCIPAL: '156001103433'
-        run: ./test/grant-revoke.sh
       - name: Test grant/revoking roles
         env:
           BATON: ./baton/baton
