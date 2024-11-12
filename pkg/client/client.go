@@ -298,3 +298,35 @@ func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, e
 
 	return res, nil
 }
+
+// UpdateAgentRoles. Update an Agent.
+func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int64, userId string) (any, error) {
+	var (
+		body struct {
+			RoleIDs []int64 `json:"role_ids"`
+		}
+		res, statusCode any
+	)
+
+	ids, err := json.Marshal(roleIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	payload := []byte(fmt.Sprintf(`{ "role_ids": %s }`, ids))
+	err = json.Unmarshal(payload, &body)
+	if err != nil {
+		return nil, err
+	}
+
+	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+		return statusCode, err
+	}
+
+	return statusCode, nil
+}

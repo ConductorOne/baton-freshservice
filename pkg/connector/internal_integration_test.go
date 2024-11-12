@@ -195,3 +195,50 @@ func TestGroupGrant(t *testing.T) {
 	}, entitlement)
 	require.Nil(t, err)
 }
+
+func TestRoleGrant(t *testing.T) {
+	var roleEntitlement string
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	grantEntitlement := "role:156000506894:assigned"
+	grantPrincipalType := "user"
+	grantPrincipal := "156001115279"
+	_, data, err := parseEntitlementID(grantEntitlement)
+	require.Nil(t, err)
+	require.NotNil(t, data)
+
+	roleEntitlement = data[2]
+	resource, err := getRoleForTesting(ctxTest, data[1], "role_agent", "test")
+	require.Nil(t, err)
+
+	entitlement := getEntitlementForTesting(resource, grantPrincipalType, roleEntitlement)
+	r := &roleBuilder{
+		resourceType: resourceTypeRole,
+		client:       cliTest,
+	}
+	_, err = r.Grant(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{
+			ResourceType: userResourceType.Id,
+			Resource:     grantPrincipal,
+		},
+	}, entitlement)
+	require.Nil(t, err)
+}
+
+func getRoleForTesting(ctxTest context.Context, id string, name, description string) (*v2.Resource, error) {
+	num, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return roleResource(ctxTest, &client.Role{
+		ID:          int64(num),
+		Name:        name,
+		Description: description,
+	}, nil)
+}

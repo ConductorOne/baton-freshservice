@@ -3,7 +3,9 @@ package connector
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -12,6 +14,8 @@ import (
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type roleBuilder struct {
@@ -181,6 +185,104 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	return rv, nextPageToken, nil, nil
+}
+
+func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"freshservice-connector: only users can be granted role membership",
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("principal_id", principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("freshservice-connector: only users can be granted role membership")
+	}
+
+	roleId := entitlement.Resource.Id.Resource
+	userId := principal.Id.Resource
+	roles, err := r.client.GetAgentDetail(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	roleId64, err := strconv.ParseInt(roleId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var roleIDs []int64
+	for _, role := range roles.RoleIDs {
+		if roleId64 == role {
+			return nil, fmt.Errorf("freshservice-connector: role already assigned")
+		}
+
+		roleIDs = append(roleIDs, role)
+	}
+
+	// Adding new role
+	roleIDs = append(roleIDs, roleId64)
+	statusCode, err := r.client.UpdateAgentRoles(ctx, roleIDs, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if http.StatusOK == statusCode {
+		l.Warn("Membership has been created.",
+			zap.String("userId", userId),
+			zap.String("roleId", roleId),
+		)
+	}
+
+	return nil, nil
+}
+
+func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	principal := grant.Principal
+	entitlement := grant.Entitlement
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"freshservice-connector: only users can have role membership revoked",
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("principal_id", principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("freshservice-connector: only users can have role membership revoked")
+	}
+
+	userId := principal.Id.Resource
+	roleId := entitlement.Resource.Id.Resource
+	roles, err := r.client.GetAgentDetail(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	roleId64, err := strconv.ParseInt(roleId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var roleIDs []int64
+	for _, role := range roles.RoleIDs {
+		if roleId64 == role {
+			continue
+		}
+
+		roleIDs = append(roleIDs, role)
+	}
+
+	statusCode, err := r.client.UpdateAgentRoles(ctx, roleIDs, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if http.StatusOK == statusCode {
+		l.Warn("Membership has been revoked.",
+			zap.String("userId", userId),
+			zap.String("roleId", roleId),
+		)
+	}
+
+	return nil, nil
 }
 
 func newRoleBuilder(c *client.FreshServiceClient) *roleBuilder {
