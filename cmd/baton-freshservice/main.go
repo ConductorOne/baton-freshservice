@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	"github.com/conductorone/baton-freshservice/pkg/connector"
@@ -28,6 +30,21 @@ var (
 	domainField         = field.StringField(domain, field.WithRequired(true), field.WithDescription("The domain for your account."))
 	configurationFields = []field.SchemaField{apiKeyField, domainField}
 )
+
+// extractSubdomain parses a URL or domain string and returns the subdomain portion.
+func extractSubdomain(input string) (string, error) {
+	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
+		parsedURL, err := url.Parse(input)
+		if err != nil {
+			return "", fmt.Errorf("invalid domain URL: %w", err)
+		}
+		parts := strings.Split(parsedURL.Hostname(), ".")
+		if len(parts) > 0 {
+			return parts[0], nil
+		}
+	}
+	return input, nil
+}
 
 func main() {
 	ctx := context.Background()
@@ -56,6 +73,19 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 		fsDomain = cfg.GetString(domain)
 	)
 	l := ctxzap.Extract(ctx)
+
+	subdomain, err := extractSubdomain(fsDomain)
+	if err != nil {
+		l.Error("error extracting subdomain", zap.Error(err))
+		return nil, err
+	}
+	fsDomain = subdomain
+
+	// Validate the subdomain format
+	if strings.Contains(fsDomain, ".") || strings.Contains(fsDomain, "/") || fsDomain == "" {
+		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshdesk.com')", fsDomain)
+	}
+
 	if fsToken != "" && fsDomain != "" {
 		fsClient.WithBearerToken(fsToken).WithDomain(fsDomain)
 	}
