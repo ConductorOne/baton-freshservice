@@ -34,7 +34,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 	if bag.Current() == nil {
 		bag.Push(pagination.PageState{
-			ResourceTypeID: resourceTypeRole.Id,
+			ResourceTypeID: userResourceType.Id,
 		})
 	}
 

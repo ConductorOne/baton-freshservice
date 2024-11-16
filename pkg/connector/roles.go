@@ -184,7 +184,10 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 			}
 		}
 	case groupResourceType.Id:
-		groups, err := r.client.GetGroups(ctx)
+		groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
+			PerPage: ITEMSPERPAGE,
+			Page:    pageToken,
+		})
 		if err != nil {
 			return nil, "", nil, err
 		}

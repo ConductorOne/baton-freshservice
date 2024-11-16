@@ -169,20 +169,76 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	return res, page, nil
 }
 
+func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, error) {
+	var nextPageToken string = ""
+	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	if err != nil {
+		return nil, "", err
+	}
+
+	if page.HasNext() {
+		nextPageToken = *page.NextPage
+	}
+
+	return groups, nextPageToken, nil
+}
+
 // GetGroups. List All Agent Groups(Groups).
 // https://developers.freshdesk.com/api/#groups
-func (f *FreshServiceClient) GetGroups(ctx context.Context) (*GroupsAPIData, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups")
+func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, error) {
+	var (
+		res          *GroupsAPIData
+		page         Page
+		err          error
+		header       http.Header
+		IsLastPage   = true
+		sPage, nPage = "1", "0"
+	)
+	groupsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups")
 	if err != nil {
-		return nil, err
+		return nil, Page{}, err
 	}
 
-	var res *GroupsAPIData
-	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
+	uri, err := url.Parse(groupsUrl)
+	if err != nil {
+		return nil, Page{}, err
 	}
 
-	return res, nil
+	if startPage != "0" {
+		sPage = startPage
+	}
+
+	setRawQuery(uri, sPage, limitPerPage)
+	if err, header, _ = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		return nil, Page{}, err
+	}
+
+	if linkUrl, ok := header["Link"]; ok {
+		nextLinkUrl, err := getNextLink(linkUrl)
+		if err != nil {
+			return res, page, err
+		}
+
+		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
+		if err != nil {
+			return res, page, err
+		}
+
+		if params.Has("page") {
+			nPage = params.Get("page")
+			IsLastPage = false
+		}
+	}
+
+	if !IsLastPage {
+		page = Page{
+			PreviousPage: &sPage,
+			NextPage:     &nPage,
+			Count:        int64(0),
+		}
+	}
+
+	return res, page, nil
 }
 
 // setRawQuery. Set query parameters.
