@@ -97,23 +97,79 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-// GetUsers. List All Agents.
-// https://developers.freshdesk.com/api/#agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, error) {
+	var nextPageToken string = ""
+	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	var res *AgentsAPIData
-	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
+	if page.HasNext() {
+		nextPageToken = *page.NextPage
 	}
 
-	return res, nil
+	return users, nextPageToken, nil
 }
 
-// GetGroups. List All Groups.
+// GetUsers. List All Agents(Users).
+// https://developers.freshdesk.com/api/#agents
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIData, Page, error) {
+	var (
+		res          *AgentsAPIData
+		page         Page
+		err          error
+		header       http.Header
+		IsLastPage   = true
+		sPage, nPage = "1", "0"
+	)
+	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
+	if err != nil {
+		return nil, Page{}, err
+	}
+
+	uri, err := url.Parse(agentsUrl)
+	if err != nil {
+		return nil, Page{}, err
+	}
+
+	if startPage != "0" {
+		sPage = startPage
+	}
+
+	setRawQuery(uri, sPage, limitPerPage)
+	if err, header, _ = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		return nil, Page{}, err
+	}
+
+	if linkUrl, ok := header["Link"]; ok {
+		nextLinkUrl, err := getNextLink(linkUrl)
+		if err != nil {
+			return res, page, err
+		}
+
+		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
+		if err != nil {
+			return res, page, err
+		}
+
+		if params.Has("page") {
+			nPage = params.Get("page")
+			IsLastPage = false
+		}
+	}
+
+	if !IsLastPage {
+		page = Page{
+			PreviousPage: &sPage,
+			NextPage:     &nPage,
+			Count:        int64(0),
+		}
+	}
+
+	return res, page, nil
+}
+
+// GetGroups. List All Agent Groups(Groups).
 // https://developers.freshdesk.com/api/#groups
 func (f *FreshServiceClient) GetGroups(ctx context.Context) (*GroupsAPIData, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups")
@@ -164,12 +220,12 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		IsLastPage   = true
 		sPage, nPage = "1", "0"
 	)
-	agentsUrl, err := url.JoinPath(f.baseUrl, "roles")
+	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
 		return nil, Page{}, err
 	}
 
-	uri, err := url.Parse(agentsUrl)
+	uri, err := url.Parse(rolesUrl)
 	if err != nil {
 		return nil, Page{}, err
 	}

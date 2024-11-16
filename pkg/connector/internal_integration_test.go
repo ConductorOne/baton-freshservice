@@ -39,8 +39,14 @@ func TestUsersBuilderList(t *testing.T) {
 		resourceType: userResourceType,
 		client:       cliTest,
 	}
-	_, _, _, err = u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
-	require.Nil(t, err)
+	var token = "{}"
+	for token != "" {
+		_, tk, _, err := u.List(ctxTest, &v2.ResourceId{}, &pagination.Token{
+			Token: token,
+		})
+		require.Nil(t, err)
+		token = tk
+	}
 }
 
 func TestGroupsBuilderList(t *testing.T) {
@@ -75,7 +81,6 @@ func TestRolesBuilderList(t *testing.T) {
 	var token = "{}"
 	for token != "" {
 		_, tk, _, err := r.List(ctxTest, &v2.ResourceId{}, &pagination.Token{
-			Size:  0,
 			Token: token,
 		})
 		require.Nil(t, err)

@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -21,12 +22,42 @@ func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	users, err := u.client.GetUsers(ctx)
+	var (
+		pageToken int
+		err       error
+		rv        []*v2.Resource
+	)
+	_, bag, err := unmarshalSkipToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	var rv []*v2.Resource
+	if bag.Current() == nil {
+		bag.Push(pagination.PageState{
+			ResourceTypeID: resourceTypeRole.Id,
+		})
+	}
+
+	if bag.Current().Token != "" {
+		pageToken, err = strconv.Atoi(bag.Current().Token)
+		if err != nil {
+			return nil, "", nil, err
+		}
+	}
+
+	users, nextPageToken, err := u.client.ListAllUsers(ctx, client.PageOptions{
+		PerPage: ITEMSPERPAGE,
+		Page:    pageToken,
+	})
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	err = bag.Next(nextPageToken)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	for _, user := range *users {
 		userCopy := user
 		ur, err := userResource(ctx, &userCopy, nil)
@@ -36,7 +67,12 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		rv = append(rv, ur)
 	}
 
-	return rv, "", nil, nil
+	nextPageToken, err = bag.Marshal()
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return rv, nextPageToken, nil, nil
 }
 
 // Entitlements always returns an empty slice for users.

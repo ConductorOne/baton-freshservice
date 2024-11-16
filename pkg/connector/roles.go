@@ -123,8 +123,8 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		err           error
 		rv            []*v2.Grant
 		nextPageToken string
+		pageToken     int
 	)
-
 	_, bag, err := unmarshalSkipToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
@@ -141,12 +141,18 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	if bag.Current().Token != "" {
-		nextPageToken = bag.Current().Token
+		pageToken, err = strconv.Atoi(bag.Current().Token)
+		if err != nil {
+			return nil, "", nil, err
+		}
 	}
 
 	switch bag.ResourceTypeID() {
 	case userResourceType.Id:
-		users, err := r.client.GetUsers(ctx)
+		users, nextPageToken, err := r.client.ListAllUsers(ctx, client.PageOptions{
+			PerPage: ITEMSPERPAGE,
+			Page:    pageToken,
+		})
 		if err != nil {
 			return nil, "", nil, err
 		}
