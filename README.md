@@ -42,6 +42,12 @@ baton-freshservice
 baton resources
 ```
 
+# Running locally
+
+```
+baton-freshservice --api-key XGBbkmSzprd1hQkdXabc --domain conductorone
+```
+
 # Data Model
 
 `baton-freshservice` will pull down information about the following resources:
