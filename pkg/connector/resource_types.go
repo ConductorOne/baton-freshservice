@@ -4,6 +4,8 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 )
 
+// By default, the number of objects returned per page is 30.
+// https://developers.freshdesk.com/api/#pagination
 const ITEMSPERPAGE = 30
 
 var (

@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -103,7 +106,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context) (*AgentsAPIData, erro
 	}
 
 	var res *AgentsAPIData
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -119,27 +122,102 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context) (*GroupsAPIData, err
 	}
 
 	var res *GroupsAPIData
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
 
+// setRawQuery. Set query parameters.
+// page : number for the page (inclusive). If not passed, first page is assumed.
+// per_page : Number of items to return. If not passed, a page size of 30 is used.
+func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
+	q := uri.Query()
+	q.Set("per_page", limitPerPage)
+	q.Set("page", sPage)
+	uri.RawQuery = q.Encode()
+}
+
+func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, error) {
+	var nextPageToken string = ""
+	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	if err != nil {
+		return nil, "", err
+	}
+
+	if page.HasNext() {
+		nextPageToken = *page.NextPage
+	}
+
+	return roles, nextPageToken, nil
+}
+
 // GetRoles. List All Roles.
 // https://developers.freshdesk.com/api/#roles
-func (f *FreshServiceClient) GetRoles(ctx context.Context) (*RolesAPIData, error) {
+func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIData, Page, error) {
+	var (
+		res          *RolesAPIData
+		page         Page
+		err          error
+		header       http.Header
+		IsLastPage   = true
+		sPage, nPage = "1", "0"
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
-		return nil, err
+		return nil, Page{}, err
 	}
 
-	var res *RolesAPIData
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
+	uri, err := url.Parse(agentsUrl)
+	if err != nil {
+		return nil, Page{}, err
 	}
 
-	return res, nil
+	if startPage != "0" {
+		sPage = startPage
+	}
+
+	setRawQuery(uri, sPage, limitPerPage)
+	if err, header, _ = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		return nil, Page{}, err
+	}
+
+	if linkUrl, ok := header["Link"]; ok {
+		nextLinkUrl, err := getNextLink(linkUrl)
+		if err != nil {
+			return res, page, err
+		}
+
+		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
+		if err != nil {
+			return res, page, err
+		}
+
+		if params.Has("page") {
+			nPage = params.Get("page")
+			IsLastPage = false
+		}
+	}
+
+	if !IsLastPage {
+		page = Page{
+			PreviousPage: &sPage,
+			NextPage:     &nPage,
+			Count:        int64(0),
+		}
+	}
+
+	return res, page, nil
+}
+
+func getNextLink(linkUrl []string) (*url.URL, error) {
+	urlStr := strings.Join(linkUrl, "")
+	regex := regexp.MustCompile(`[<>;,.!]`)
+	result := regex.ReplaceAllString(urlStr, "")
+	urlStr = strings.ReplaceAll(result, `rel="next"`, "")
+	nextUrl, err := url.Parse(strings.Trim(urlStr, " "))
+	return nextUrl, err
 }
 
 // GetGroups. List All Groups.
@@ -151,7 +229,7 @@ func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (
 	}
 
 	var res *Group
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -167,7 +245,7 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	}
 
 	var res *[]GroupRoles
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -195,7 +273,7 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 		return nil, err
 	}
 
-	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
@@ -224,7 +302,7 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 		return nil, err
 	}
 
-	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
@@ -239,21 +317,21 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	}
 
 	var res *AgentDetailsAPIData
-	if err, _ = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (error, any) {
+func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (error, http.Header, any) {
 	var (
 		resp *http.Response
 		err  error
 	)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
 	req, err := f.httpClient.NewRequest(ctx,
@@ -264,7 +342,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		uhttp.WithJSONBody(body),
 	)
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
 	switch method {
@@ -277,10 +355,10 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	}
 
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
-	return nil, resp.StatusCode
+	return nil, resp.Header, resp.StatusCode
 }
 
 // GetAccount. View Account.
@@ -292,7 +370,7 @@ func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, e
 	}
 
 	var res *AccountAPIData
-	if err, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -324,7 +402,7 @@ func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int
 		return nil, err
 	}
 
-	if err, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 

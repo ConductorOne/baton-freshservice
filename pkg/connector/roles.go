@@ -53,12 +53,42 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 }
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	roles, err := r.client.GetRoles(ctx)
+	var (
+		pageToken int
+		err       error
+		rv        []*v2.Resource
+	)
+	_, bag, err := unmarshalSkipToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	var rv []*v2.Resource
+	if bag.Current() == nil {
+		bag.Push(pagination.PageState{
+			ResourceTypeID: resourceTypeRole.Id,
+		})
+	}
+
+	if bag.Current().Token != "" {
+		pageToken, err = strconv.Atoi(bag.Current().Token)
+		if err != nil {
+			return nil, "", nil, err
+		}
+	}
+
+	roles, nextPageToken, err := r.client.ListAllRoles(ctx, client.PageOptions{
+		PerPage: ITEMSPERPAGE,
+		Page:    pageToken,
+	})
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	err = bag.Next(nextPageToken)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	for _, role := range *roles {
 		roleCopy := role
 		ur, err := roleResource(ctx, &roleCopy, nil)
@@ -68,7 +98,12 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		rv = append(rv, ur)
 	}
 
-	return rv, "", nil, nil
+	nextPageToken, err = bag.Marshal()
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return rv, nextPageToken, nil, nil
 }
 
 func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
