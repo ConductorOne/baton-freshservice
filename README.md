@@ -45,7 +45,7 @@ baton resources
 # Running locally
 
 ```
-baton-freshservice --api-key XGBbkmSzprd1hQkdXabc --domain conductorone
+baton-freshservice --api-key Xswedcvfrtgbyhnmju --domain conductorone
 ```
 
 # Data Model
