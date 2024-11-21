@@ -23,6 +23,13 @@ https://support.freshdesk.com -> support
 
 https://solutions.freshdesk.com -> solutions
 
+## How to get your Freshservice API key (4 steps) 
+
+1.- Log in, then, On the top right corner of Freshservice's homepage, you should see an icon of a person.
+2.- Click on profile settings.
+3.- Complete the CAPTCHA to access your API key.
+4.- Copy your API key and store it in a secure location.
+
 ## brew
 
 ```

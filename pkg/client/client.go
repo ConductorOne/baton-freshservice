@@ -197,7 +197,7 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 	}
 
 	setRawQuery(uri, sPage, limitPerPage)
-	if err, header, _ = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+	if header, _, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
 		return page, err
 	}
 
@@ -297,7 +297,7 @@ func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (
 	}
 
 	var res *Group
-	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -313,7 +313,7 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	}
 
 	var res *[]GroupRoles
-	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -341,7 +341,7 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 		return nil, err
 	}
 
-	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
@@ -370,7 +370,7 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 		return nil, err
 	}
 
-	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
@@ -385,21 +385,21 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	}
 
 	var res *AgentDetailsAPIData
-	if err, _, _ = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, _, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
 	return res, nil
 }
 
-func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (error, http.Header, any) {
+func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, any, error) {
 	var (
 		resp *http.Response
 		err  error
 	)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
 	req, err := f.httpClient.NewRequest(ctx,
@@ -410,7 +410,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		uhttp.WithJSONBody(body),
 	)
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
 	switch method {
@@ -423,10 +423,10 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	}
 
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
-	return nil, resp.Header, resp.StatusCode
+	return resp.Header, resp.StatusCode, nil
 }
 
 // GetAccount. View Account.
@@ -438,7 +438,7 @@ func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, e
 	}
 
 	var res *AccountAPIData
-	if err, _, _ := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -470,7 +470,7 @@ func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int
 		return nil, err
 	}
 
-	if err, _, statusCode = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
