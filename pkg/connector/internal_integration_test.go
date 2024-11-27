@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,11 +16,9 @@ import (
 )
 
 var (
-	// apiKey  = os.Getenv("BATON_API_KEY")
-	// domain  = os.Getenv("BATON_DOMAIN")
+	apiKey  = os.Getenv("BATON_API_KEY")
+	domain  = os.Getenv("BATON_DOMAIN")
 	ctxTest = context.Background()
-	apiKey  = "GvLJ497a5s2AKKe3Nf5J"
-	domain  = "https://conductoronehelpdesk.freshservice.com"
 )
 
 func getClientForTesting(ctx context.Context) (*client.FreshServiceClient, error) {
@@ -261,4 +260,22 @@ func getRoleForTesting(ctxTest context.Context, id string, name, description str
 		Name:        name,
 		Description: description,
 	}, nil)
+}
+
+func TestUserGrants(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	u := &userBuilder{
+		resourceType: groupResourceType,
+		client:       cliTest,
+	}
+	_, _, _, err = u.Grants(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000161861"},
+	}, &pagination.Token{})
+	require.Nil(t, err)
 }

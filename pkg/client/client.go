@@ -100,7 +100,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 
 func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIDataV2, string, error) {
 	var nextPageToken string = ""
-	if !opts.HasValidPageSize() {
+	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
 	}
 
@@ -145,7 +145,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 
 func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIDataV2, string, error) {
 	var nextPageToken string = ""
-	if !opts.HasValidPageSize() {
+	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
 	}
 
@@ -254,6 +254,10 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 
 func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIDataV2, string, error) {
 	var nextPageToken string = ""
+	if opts.HasNotValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err
@@ -375,11 +379,11 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 }
 
 // GetAgentDetail. Get agent detail.
-func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*Agents, error) {
+func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, error) {
 	var (
 		statusCode any
 		err        error
-		res        *Agents
+		res        *AgentDetailAPIData
 	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
@@ -394,7 +398,7 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 		return res, nil
 	}
 
-	return &Agents{}, nil
+	return &AgentDetailAPIData{}, nil
 }
 
 func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, any, error) {

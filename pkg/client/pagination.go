@@ -24,6 +24,6 @@ func (p Page) HasNext() bool {
 	return (p.NextPage != nil)
 }
 
-func (opts *PageOptions) HasValidPageSize() bool {
+func (opts *PageOptions) HasNotValidPageSize() bool {
 	return opts.PerPage < 0 || opts.PerPage > 100
 }

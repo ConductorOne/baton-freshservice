@@ -56,6 +56,11 @@ type Agents struct {
 	MemberOfPendingApproval                   []interface{}        `json:"member_of_pending_approval,omitempty"`
 	ObserverOfPendingApproval                 []interface{}        `json:"observer_of_pending_approval,omitempty"`
 }
+
+type AgentDetailAPIData struct {
+	Agent Agents `json:"agent"`
+}
+
 type AgentRoles struct {
 	RoleID          int64         `json:"role_id,omitempty"`
 	AssignmentScope string        `json:"assignment_scope,omitempty"`
