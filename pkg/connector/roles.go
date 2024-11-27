@@ -103,107 +103,48 @@ func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 
 func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var (
-		err           error
 		rv            []*v2.Grant
 		nextPageToken string
-		pageToken     int
 	)
-	_, bag, err := unmarshalSkipToken(pToken)
+	bag, pageToken, err := handleToken(pToken, userResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	if bag.Current() == nil {
-		// Push onto stack in reverse
-		bag.Push(pagination.PageState{
-			ResourceTypeID: groupResourceType.Id,
-		})
-		bag.Push(pagination.PageState{
-			ResourceTypeID: userResourceType.Id,
-		})
+	groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
+		PerPage: ITEMSPERPAGE,
+		Page:    pageToken,
+	})
+	if err != nil {
+		return nil, "", nil, err
 	}
 
-	if bag.Current().Token != "" {
-		pageToken, err = strconv.Atoi(bag.Current().Token)
-		if err != nil {
-			return nil, "", nil, err
-		}
+	err = bag.Next(nextPageToken)
+	if err != nil {
+		return nil, "", nil, err
 	}
 
-	switch bag.ResourceTypeID() {
-	case userResourceType.Id:
-		users, nextPageToken, err := r.client.ListAllUsers(ctx, client.PageOptions{
-			PerPage: ITEMSPERPAGE,
-			Page:    pageToken,
-		})
+	for _, group := range *groups {
+		groupId := fmt.Sprintf("%d", group.ID)
+		roles, err := r.client.GetGroupDetail(ctx, groupId)
 		if err != nil {
 			return nil, "", nil, err
 		}
 
-		err = bag.Next(nextPageToken)
-		if err != nil {
-			return nil, "", nil, err
-		}
-
-		for _, user := range *users {
-			userId := fmt.Sprintf("%d", user.ID)
-			roles, err := r.client.GetAgentDetail(ctx, userId)
-			if err != nil {
-				return nil, "", nil, err
-			}
-
-			rolePos := slices.IndexFunc(roles.RoleIDs, func(c int64) bool {
+		for _, role := range *roles {
+			rolePos := slices.IndexFunc(role.RoleIDs, func(c int64) bool {
 				roleId := fmt.Sprintf("%d", c)
 				return roleId == resource.Id.Resource
 			})
-
 			if rolePos != NF {
-				userId := &v2.ResourceId{
-					ResourceType: userResourceType.Id,
-					Resource:     userId,
+				groupId := &v2.ResourceId{
+					ResourceType: groupResourceType.Id,
+					Resource:     groupId,
 				}
-				grant := grant.NewGrant(resource, assignedEntitlement, userId)
+				grant := grant.NewGrant(resource, assignedEntitlement, groupId)
 				rv = append(rv, grant)
 			}
 		}
-	case groupResourceType.Id:
-		groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
-			PerPage: ITEMSPERPAGE,
-			Page:    pageToken,
-		})
-		if err != nil {
-			return nil, "", nil, err
-		}
-
-		err = bag.Next(nextPageToken)
-		if err != nil {
-			return nil, "", nil, err
-		}
-
-		for _, group := range *groups {
-			groupId := fmt.Sprintf("%d", group.ID)
-			roles, err := r.client.GetGroupDetail(ctx, groupId)
-			if err != nil {
-				return nil, "", nil, err
-			}
-
-			for _, role := range *roles {
-				rolePos := slices.IndexFunc(role.RoleIDs, func(c int64) bool {
-					roleId := fmt.Sprintf("%d", c)
-					return roleId == resource.Id.Resource
-				})
-				if rolePos != NF {
-					groupId := &v2.ResourceId{
-						ResourceType: groupResourceType.Id,
-						Resource:     groupId,
-					}
-					grant := grant.NewGrant(resource, assignedEntitlement, groupId)
-					rv = append(rv, grant)
-				}
-			}
-		}
-	default:
-		return nil, "", nil, fmt.Errorf("freshservice connector: invalid grant resource type: %s", bag.ResourceTypeID())
 	}
 
 	nextPageToken, err = bag.Marshal()

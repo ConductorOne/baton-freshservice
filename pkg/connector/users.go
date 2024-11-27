@@ -7,6 +7,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 )
 
 type userBuilder struct {
@@ -64,7 +65,30 @@ func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 
 // Grants always returns an empty slice for users since they don't have any entitlements.
 func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	var rv []*v2.Grant
+	userId := resource.Id.Resource
+	roles, err := u.client.GetAgentDetail(ctx, userId)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	for _, role := range roles.RoleIDs {
+		roleRes, err := roleResource(ctx, &client.Role{
+			ID: role,
+		}, nil)
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		userId := &v2.ResourceId{
+			ResourceType: userResourceType.Id,
+			Resource:     userId,
+		}
+		grant := grant.NewGrant(roleRes, assignedEntitlement, userId)
+		rv = append(rv, grant)
+	}
+
+	return rv, "", nil, nil
 }
 
 func newUserBuilder(c *client.FreshServiceClient) *userBuilder {
