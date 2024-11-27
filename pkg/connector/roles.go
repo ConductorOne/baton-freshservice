@@ -107,10 +107,6 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	var roleIDs []int64
 	for _, role := range roles.Agent.Roles {
-		if roleId64 == role.RoleID {
-			return nil, fmt.Errorf("freshservice-connector: role already assigned")
-		}
-
 		roleIDs = append(roleIDs, role.RoleID)
 	}
 
