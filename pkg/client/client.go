@@ -129,7 +129,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	}
 
 	var res *AgentsAPIData
-	page, err := f.getAPIData(ctx,
+	page, _, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
@@ -174,7 +174,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 	}
 
 	var res *GroupsAPIData
-	page, err := f.getAPIData(ctx,
+	page, _, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
@@ -192,32 +192,33 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 	limitPerPage string,
 	uri *url.URL,
 	res any,
-) (Page, error) {
+) (Page, any, error) {
 	var (
 		header       http.Header
 		err          error
 		page         Page
 		IsLastPage   = true
 		sPage, nPage = "1", "0"
+		statusCode   any
 	)
 	if startPage != "0" {
 		sPage = startPage
 	}
 
 	setRawQuery(uri, sPage, limitPerPage)
-	if header, _, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
-		return page, err
+	if header, statusCode, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		return page, statusCode, err
 	}
 
 	if linkUrl, ok := header["Link"]; ok {
 		nextLinkUrl, err := getNextLink(linkUrl)
 		if err != nil {
-			return page, err
+			return page, statusCode, err
 		}
 
 		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
 		if err != nil {
-			return page, err
+			return page, statusCode, err
 		}
 
 		if params.Has("page") {
@@ -233,7 +234,7 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 		}
 	}
 
-	return page, nil
+	return page, statusCode, nil
 }
 
 // setRawQuery. Set query parameters.
@@ -278,7 +279,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 	}
 
 	var res *RolesAPIData
-	page, err := f.getAPIData(ctx,
+	page, _, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
@@ -303,33 +304,47 @@ func getNextLink(linkUrl []string) (*url.URL, error) {
 // GetGroups. List All Groups.
 // https://developers.freshdesk.com/api/#groups
 func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (*Group, error) {
+	var (
+		statusCode any
+		res        *Group
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId)
 	if err != nil {
 		return nil, err
 	}
 
-	var res *Group
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &Group{}, nil
 }
 
 // GetAgentsByGroupId. List All Agents in a Group.
 // https://developers.freshdesk.com/api/#groups
 func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*[]GroupRoles, error) {
+	var (
+		statusCode any
+		res        *[]GroupRoles
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
 	if err != nil {
 		return nil, err
 	}
 
-	var res *[]GroupRoles
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &[]GroupRoles{}, err
 }
 
 func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
