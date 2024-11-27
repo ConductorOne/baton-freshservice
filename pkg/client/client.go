@@ -322,11 +322,7 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 
 func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
-		body struct {
-			Agents []struct {
-				ID int `json:"id"`
-			} `json:"agents"`
-		}
+		body            AddAgentToGroup
 		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s}] }`, userId))
 		res, statusCode any
 	)
@@ -350,12 +346,7 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 
 func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
-		body struct {
-			Agents []struct {
-				ID      int  `json:"id"`
-				Deleted bool `json:"deleted"`
-			} `json:"agents"`
-		}
+		body            RemoveAgentFromGroup
 		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s, "deleted": true}] }`, userId))
 		res, statusCode any
 	)
@@ -448,12 +439,9 @@ func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, e
 // UpdateAgentRoles. Update an Agent.
 func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int64, userId string) (any, error) {
 	var (
-		body struct {
-			RoleIDs []int64 `json:"role_ids"`
-		}
+		body            UpdateAgentRoles
 		res, statusCode any
 	)
-
 	ids, err := json.Marshal(roleIDs)
 	if err != nil {
 		return nil, err

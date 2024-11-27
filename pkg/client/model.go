@@ -160,3 +160,20 @@ type TotalAgents struct {
 	FieldService  int `json:"field_service,omitempty"`
 	Collaborators int `json:"collaborators,omitempty"`
 }
+
+type RemoveAgentFromGroup struct {
+	Agents []struct {
+		ID      int  `json:"id"`
+		Deleted bool `json:"deleted"`
+	} `json:"agents"`
+}
+
+type UpdateAgentRoles struct {
+	RoleIDs []int64 `json:"role_ids"`
+}
+
+type AddAgentToGroup struct {
+	Agents []struct {
+		ID int `json:"id"`
+	} `json:"agents"`
+}
