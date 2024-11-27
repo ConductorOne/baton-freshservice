@@ -38,7 +38,7 @@ func (g *groupBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // Groups include a GroupTrait because they are the 'shape' of a standard group.
 func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := handleToken(pToken, userResourceType)
+	bag, pageToken, err := handleToken(pToken, groupResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}

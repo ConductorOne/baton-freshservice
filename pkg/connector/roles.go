@@ -54,7 +54,7 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := handleToken(pToken, userResourceType)
+	bag, pageToken, err := handleToken(pToken, resourceTypeRole)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -106,7 +106,7 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		rv            []*v2.Grant
 		nextPageToken string
 	)
-	bag, pageToken, err := handleToken(pToken, userResourceType)
+	bag, pageToken, err := handleToken(pToken, resourceTypeRole)
 	if err != nil {
 		return nil, "", nil, err
 	}
