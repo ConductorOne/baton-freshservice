@@ -12,6 +12,7 @@ import (
 
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type FreshServiceClient struct {
@@ -403,6 +404,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		resp *http.Response
 		err  error
 	)
+	l := ctxzap.Extract(ctx)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
 		return nil, nil, err
@@ -429,6 +431,13 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	}
 
 	if err != nil {
+		if strings.Contains(err.Error(), "request timeout") {
+			l.Warn("request timeout.",
+				zap.String("urlAddress", urlAddress.String()),
+			)
+			return nil, http.StatusRequestTimeout, nil
+		}
+
 		return nil, nil, err
 	}
 
