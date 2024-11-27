@@ -20,7 +20,6 @@ func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.Reso
 		newUserBuilder(d.client),
 		newGroupBuilder(d.client),
 		newRoleBuilder(d.client),
-		newAccountBuilder(d.client),
 	}
 }
 
@@ -34,7 +33,7 @@ func (d *Connector) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.R
 func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
 		DisplayName: "FreshService Connector",
-		Description: "Connector syncing users, groups, roles and account from FreshService.",
+		Description: "Connector syncing users, groups and roles from FreshService.",
 	}, nil
 }
 

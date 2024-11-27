@@ -21,14 +21,10 @@ type groupBuilder struct {
 	client       *client.FreshServiceClient
 }
 
-const (
-	memberEntitlement = "member"
-	adminEntitlement  = "admin"
-)
+const memberEntitlement = "member"
 
 var groupEntitlementAccessLevels = []string{
 	memberEntitlement,
-	adminEntitlement,
 }
 
 func (g *groupBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -74,7 +70,7 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 		return nil, "", nil, err
 	}
 
-	for _, group := range *groups {
+	for _, group := range groups.Groups {
 		groupCopy := group
 		ur, err := groupResource(ctx, &groupCopy, nil)
 		if err != nil {
@@ -109,17 +105,17 @@ func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, 
 
 func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
-	group, err := g.client.GetGroupById(ctx, resource.Id.Resource)
+	data, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	for _, agent := range group.AgentIDs {
+	for _, agent := range data.Group.Members {
 		userId := &v2.ResourceId{
 			ResourceType: userResourceType.Id,
 			Resource:     fmt.Sprintf("%d", agent),
 		}
-		grant := grant.NewGrant(resource, "member", userId)
+		grant := grant.NewGrant(resource, memberEntitlement, userId)
 		rv = append(rv, grant)
 	}
 

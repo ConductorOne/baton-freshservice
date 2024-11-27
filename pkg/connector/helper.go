@@ -3,29 +3,28 @@ package connector
 import (
 	"context"
 	"strconv"
-	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func userResource(ctx context.Context, user *client.Agents, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
-	firstName, lastName := splitFullName(user.Contact.Name)
+	// firstName, lastName := splitFullName(user.Contact.Name)
 	profile := map[string]interface{}{
-		"login":      user.Contact.Email,
-		"first_name": firstName,
-		"last_name":  lastName,
-		"email":      user.Contact.Email,
 		"user_id":    user.ID,
-		"type":       user.Type,
+		"login":      user.Email,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"email":      user.Email,
 	}
 
-	switch !user.Deactivated {
+	switch user.Active {
 	case true:
 		userStatus = v2.UserTrait_Status_STATUS_ENABLED
 	case false:
@@ -35,13 +34,13 @@ func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.
 	userTraits := []rs.UserTraitOption{
 		rs.WithUserProfile(profile),
 		rs.WithStatus(userStatus),
-		rs.WithUserLogin(user.Contact.Email),
-		rs.WithEmail(user.Contact.Email, true),
+		rs.WithUserLogin(user.Email),
+		rs.WithEmail(user.Email, true),
 	}
 
-	displayName := user.Contact.Name
-	if user.Contact.Name == "" {
-		displayName = user.Contact.Email
+	displayName := user.FirstName + " " + user.LastName
+	if user.FirstName == "" {
+		displayName = user.Email
 	}
 
 	ret, err := rs.NewUserResource(
@@ -55,22 +54,6 @@ func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.
 	}
 
 	return ret, nil
-}
-
-// splitFullName returns firstName and lastName.
-func splitFullName(name string) (string, string) {
-	names := strings.SplitN(name, " ", 2)
-	var firstName, lastName string
-
-	switch len(names) {
-	case 1:
-		firstName = names[0]
-	case 2:
-		firstName = names[0]
-		lastName = names[1]
-	}
-
-	return firstName, lastName
 }
 
 // Create a new connector resource for FreshService.
@@ -119,33 +102,19 @@ func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error)
 	return skip, b, nil
 }
 
-func accountResource(ctx context.Context, account *client.AccountAPIData, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	var opts []rs.ResourceOption
+func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
-		"organisation_id":          account.OrganisationID,
-		"organisation_name":        account.OrganisationName,
-		"account_id":               account.AccountID,
-		"account_name":             account.AccountName,
-		"account_domain":           account.AccountDomain,
-		"contact_person_firstname": account.ContactPerson.Firstname,
-		"contact_person_lastname":  account.ContactPerson.Lastname,
-		"contact_person_email":     account.ContactPerson.Email,
-		"tier_type":                account.TierType,
-		"data_center":              account.DataCenter,
-		"timezone":                 account.Timezone,
+		"id":          role.ID,
+		"name":        role.Name,
+		"description": role.Description,
+		"role_type":   role.RoleType,
 	}
 
-	accountTraitOptions := []rs.AppTraitOption{
-		rs.WithAppProfile(profile),
+	roleTraitOptions := []rs.RoleTraitOption{
+		rs.WithRoleProfile(profile),
 	}
 
-	opts = append(opts, rs.WithAppTrait(accountTraitOptions...))
-	resource, err := rs.NewResource(
-		account.AccountName,
-		accountResourceType,
-		account.AccountID,
-		opts...,
-	)
+	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions)
 	if err != nil {
 		return nil, err
 	}

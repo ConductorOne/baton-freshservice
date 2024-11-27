@@ -14,18 +14,11 @@ Once you’re done with filling all the details, click on Sign up for FREE.
 
 ## Prerequisites
 
-API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
-
-Your domain name is the subdomain provided by freshdesk. 
-Ex: https://domain.freshdesk.com
-
-https://support.freshdesk.com -> support
-
-https://solutions.freshdesk.com -> solutions
+API key and full domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
 
 ## How to get your Freshservice API key (4 steps) 
 
-1.- Log in, then, On the top right corner of Freshservice's homepage, you should see an icon of a person.
+1.- Log in, then, on the top right corner of Freshservice's homepage, you should see an icon of a person.
 2.- Click on profile settings.
 3.- Complete the CAPTCHA to access your API key.
 4.- Copy your API key and store it in a secure location.
@@ -68,7 +61,6 @@ baton-freshservice --api-key Xswedcvfrtgbyhnmju --domain conductorone
 - Users
 - Groups
 - Roles
-- Account
 
 # Contributing, Support and Issues
 

@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,9 +15,11 @@ import (
 )
 
 var (
-	apiKey  = os.Getenv("BATON_API_KEY")
-	domain  = os.Getenv("BATON_DOMAIN")
+	// apiKey  = os.Getenv("BATON_API_KEY")
+	// domain  = os.Getenv("BATON_DOMAIN")
 	ctxTest = context.Background()
+	apiKey  = "GvLJ497a5s2AKKe3Nf5J"
+	domain  = "https://conductoronehelpdesk.freshservice.com"
 )
 
 func getClientForTesting(ctx context.Context) (*client.FreshServiceClient, error) {
@@ -61,8 +62,14 @@ func TestGroupsBuilderList(t *testing.T) {
 		resourceType: groupResourceType,
 		client:       cliTest,
 	}
-	_, _, _, err = g.List(ctxTest, &v2.ResourceId{}, &pagination.Token{})
-	require.Nil(t, err)
+	var token = "{}"
+	for token != "" {
+		_, tk, _, err := g.List(ctxTest, &v2.ResourceId{}, &pagination.Token{
+			Token: token,
+		})
+		require.Nil(t, err)
+		token = tk
+	}
 }
 
 func TestRolesBuilderList(t *testing.T) {
@@ -106,7 +113,7 @@ func TestRoleGrants(t *testing.T) {
 		_, tk, _, err := r.Grants(ctxTest, &v2.Resource{
 			Id: &v2.ResourceId{
 				ResourceType: resourceTypeRole.Id,
-				Resource:     "156001103433",
+				Resource:     "33000064439",
 			},
 		}, &pagination.Token{
 			Token: token,
@@ -167,7 +174,7 @@ func TestGroupGrants(t *testing.T) {
 		client:       cliTest,
 	}
 	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "156000164892"},
+		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000063690"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -249,7 +256,7 @@ func getRoleForTesting(ctxTest context.Context, id string, name, description str
 		return nil, err
 	}
 
-	return roleResource(ctxTest, &client.Role{
+	return roleResource(ctxTest, &client.Roles{
 		ID:          int64(num),
 		Name:        name,
 		Description: description,

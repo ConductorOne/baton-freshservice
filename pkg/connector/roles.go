@@ -13,7 +13,6 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
-	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -30,26 +29,6 @@ const (
 
 func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return resourceTypeRole
-}
-
-func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	profile := map[string]interface{}{
-		"id":          role.ID,
-		"name":        role.Name,
-		"description": role.Description,
-		"agent_type":  role.AgentType,
-	}
-
-	roleTraitOptions := []rs.RoleTraitOption{
-		rs.WithRoleProfile(profile),
-	}
-
-	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource, nil
 }
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
@@ -89,7 +68,7 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	for _, role := range *roles {
+	for _, role := range roles.Roles {
 		roleCopy := role
 		ur, err := roleResource(ctx, &roleCopy, nil)
 		if err != nil {
@@ -162,15 +141,15 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 			return nil, "", nil, err
 		}
 
-		for _, user := range *users {
+		for _, user := range users.Agents {
 			userId := fmt.Sprintf("%d", user.ID)
 			roles, err := r.client.GetAgentDetail(ctx, userId)
 			if err != nil {
 				return nil, "", nil, err
 			}
 
-			rolePos := slices.IndexFunc(roles.RoleIDs, func(c int64) bool {
-				roleId := fmt.Sprintf("%d", c)
+			rolePos := slices.IndexFunc(roles.Roles, func(c client.AgentRoles) bool {
+				roleId := fmt.Sprintf("%d", c.RoleID)
 				return roleId == resource.Id.Resource
 			})
 
@@ -184,41 +163,41 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 			}
 		}
 	case groupResourceType.Id:
-		groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
-			PerPage: ITEMSPERPAGE,
-			Page:    pageToken,
-		})
-		if err != nil {
-			return nil, "", nil, err
-		}
+		// groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
+		// 	PerPage: ITEMSPERPAGE,
+		// 	Page:    pageToken,
+		// })
+		// if err != nil {
+		// 	return nil, "", nil, err
+		// }
 
 		err = bag.Next(nextPageToken)
 		if err != nil {
 			return nil, "", nil, err
 		}
 
-		for _, group := range *groups {
-			groupId := fmt.Sprintf("%d", group.ID)
-			roles, err := r.client.GetGroupDetail(ctx, groupId)
-			if err != nil {
-				return nil, "", nil, err
-			}
+		// for _, group := range groups.Groups {
+		// groupId := fmt.Sprintf("%d", group.ID)
+		// roles, err := r.client.GetGroupDetail(ctx, groupId)
+		// if err != nil {
+		// 	return nil, "", nil, err
+		// }
 
-			for _, role := range *roles {
-				rolePos := slices.IndexFunc(role.RoleIDs, func(c int64) bool {
-					roleId := fmt.Sprintf("%d", c)
-					return roleId == resource.Id.Resource
-				})
-				if rolePos != NF {
-					groupId := &v2.ResourceId{
-						ResourceType: groupResourceType.Id,
-						Resource:     groupId,
-					}
-					grant := grant.NewGrant(resource, assignedEntitlement, groupId)
-					rv = append(rv, grant)
-				}
-			}
-		}
+		// for _, role := range *roles {
+		// 	rolePos := slices.IndexFunc(role.RoleIDs, func(c int64) bool {
+		// 		roleId := fmt.Sprintf("%d", c)
+		// 		return roleId == resource.Id.Resource
+		// 	})
+		// 	if rolePos != NF {
+		// 		groupId := &v2.ResourceId{
+		// 			ResourceType: groupResourceType.Id,
+		// 			Resource:     groupId,
+		// 		}
+		// 		grant := grant.NewGrant(resource, assignedEntitlement, groupId)
+		// 		rv = append(rv, grant)
+		// 	}
+		// }
+		// }
 	default:
 		return nil, "", nil, fmt.Errorf("freshservice connector: invalid grant resource type: %s", bag.ResourceTypeID())
 	}
@@ -255,12 +234,12 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	}
 
 	var roleIDs []int64
-	for _, role := range roles.RoleIDs {
-		if roleId64 == role {
+	for _, role := range roles.Roles {
+		if roleId64 == role.RoleID {
 			return nil, fmt.Errorf("freshservice-connector: role already assigned")
 		}
 
-		roleIDs = append(roleIDs, role)
+		roleIDs = append(roleIDs, role.RoleID)
 	}
 
 	// Adding new role
@@ -306,12 +285,12 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	}
 
 	var roleIDs []int64
-	for _, role := range roles.RoleIDs {
-		if roleId64 == role {
+	for _, role := range roles.Roles {
+		if roleId64 == role.RoleID {
 			continue
 		}
 
-		roleIDs = append(roleIDs, role)
+		roleIDs = append(roleIDs, role.RoleID)
 	}
 
 	statusCode, err := r.client.UpdateAgentRoles(ctx, roleIDs, userId)

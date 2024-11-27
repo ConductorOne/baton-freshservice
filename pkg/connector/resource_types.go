@@ -5,8 +5,9 @@ import (
 )
 
 // By default, the number of objects returned per page is 30.
+// The maximum number of objects that can be retrieved per page is 100
 // https://developers.freshdesk.com/api/#pagination
-const ITEMSPERPAGE = 30
+const ITEMSPERPAGE = -1
 
 var (
 	userResourceType = &v2.ResourceType{
@@ -29,10 +30,5 @@ var (
 		DisplayName: "Role",
 		Description: "Roles of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
-	}
-	accountResourceType = &v2.ResourceType{
-		Id:          "account",
-		DisplayName: "Account",
-		Description: "Accounts of FreshService",
 	}
 )

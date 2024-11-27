@@ -13,6 +13,7 @@ import (
 
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type FreshServiceClient struct {
@@ -79,7 +80,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return freshServiceClient, err
 	}
 
-	baseUrl := fmt.Sprintf("https://%s.freshdesk.com/api/v2", domain)
+	baseUrl := fmt.Sprintf("%s/api/v2", domain)
 	if !isValidUrl(baseUrl) {
 		return nil, fmt.Errorf("the url : %s is not valid", baseUrl)
 	}
@@ -97,8 +98,12 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, error) {
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIDataV2, string, error) {
 	var nextPageToken string = ""
+	if !opts.HasValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err
@@ -113,7 +118,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 // GetUsers. List All Agents(Users).
 // https://developers.freshdesk.com/api/#agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIData, Page, error) {
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIDataV2, Page, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
 	if err != nil {
 		return nil, Page{}, err
@@ -124,7 +129,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		return nil, Page{}, err
 	}
 
-	var res *AgentsAPIData
+	var res *AgentsAPIDataV2
 	page, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -138,8 +143,12 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	return res, page, nil
 }
 
-func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, error) {
+func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIDataV2, string, error) {
 	var nextPageToken string = ""
+	if !opts.HasValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err
@@ -154,8 +163,8 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 
 // GetGroups. List All Agent Groups(Groups).
 // https://developers.freshdesk.com/api/#groups
-func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, error) {
-	groupsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups")
+func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIDataV2, Page, error) {
+	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
 		return nil, Page{}, err
 	}
@@ -165,7 +174,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		return nil, Page{}, err
 	}
 
-	var res *GroupsAPIData
+	var res *GroupsAPIDataV2
 	page, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -191,13 +200,18 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 		page         Page
 		IsLastPage   = true
 		sPage, nPage = "1", "0"
+		statusCode   any
 	)
 	if startPage != "0" {
 		sPage = startPage
 	}
 
 	setRawQuery(uri, sPage, limitPerPage)
-	if header, _, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+	if header, statusCode, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		if statusCode != http.StatusRequestTimeout {
+			return page, nil
+		}
+
 		return page, err
 	}
 
@@ -238,7 +252,7 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 	uri.RawQuery = q.Encode()
 }
 
-func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, error) {
+func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIDataV2, string, error) {
 	var nextPageToken string = ""
 	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
@@ -254,7 +268,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 
 // GetRoles. List All Roles.
 // https://developers.freshdesk.com/api/#roles
-func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIData, Page, error) {
+func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIDataV2, Page, error) {
 	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
 		return nil, Page{}, err
@@ -265,7 +279,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		return nil, Page{}, err
 	}
 
-	var res *RolesAPIData
+	var res *RolesAPIDataV2
 	page, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -288,45 +302,33 @@ func getNextLink(linkUrl []string) (*url.URL, error) {
 	return nextUrl, err
 }
 
-// GetGroups. List All Groups.
-// https://developers.freshdesk.com/api/#groups
-func (f *FreshServiceClient) GetGroupById(ctx context.Context, groupId string) (*Group, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId)
-	if err != nil {
-		return nil, err
-	}
-
-	var res *Group
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
 // GetAgentsByGroupId. List All Agents in a Group.
 // https://developers.freshdesk.com/api/#groups
-func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*[]GroupRoles, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
+func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, error) {
+	var (
+		statusCode any
+		err        error
+		res        *GroupDetailAPIData
+	)
+	groupUrl, err := url.JoinPath(f.baseUrl, "groups", groupId)
 	if err != nil {
 		return nil, err
 	}
 
-	var res *[]GroupRoles
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &GroupDetailAPIData{}, nil
 }
 
 func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
-		body struct {
-			Agents []struct {
-				ID int `json:"id"`
-			} `json:"agents"`
-		}
+		body            AddAgentToGroup
 		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s}] }`, userId))
 		res, statusCode any
 	)
@@ -336,7 +338,7 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 		return nil, err
 	}
 
-	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
+	agentsUrl, err := url.JoinPath(f.baseUrl, "groups", groupId, "agents")
 	if err != nil {
 		return nil, err
 	}
@@ -350,12 +352,7 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 
 func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
-		body struct {
-			Agents []struct {
-				ID      int  `json:"id"`
-				Deleted bool `json:"deleted"`
-			} `json:"agents"`
-		}
+		body            RemoveAgentFromGroup
 		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s, "deleted": true}] }`, userId))
 		res, statusCode any
 	)
@@ -365,7 +362,7 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 		return nil, err
 	}
 
-	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
+	agentsUrl, err := url.JoinPath(f.baseUrl, "groups", groupId, "agents")
 	if err != nil {
 		return nil, err
 	}
@@ -378,18 +375,26 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 }
 
 // GetAgentDetail. Get agent detail.
-func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailsAPIData, error) {
+func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*Agents, error) {
+	var (
+		statusCode any
+		err        error
+		res        *Agents
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
 		return nil, err
 	}
 
-	var res *AgentDetailsAPIData
-	if _, _, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &Agents{}, nil
 }
 
 func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, any, error) {
@@ -397,6 +402,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		resp *http.Response
 		err  error
 	)
+	l := ctxzap.Extract(ctx)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
 		return nil, nil, err
@@ -416,41 +422,34 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	switch method {
 	case http.MethodGet:
 		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
-		defer resp.Body.Close()
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 	case http.MethodPatch:
 		resp, err = f.httpClient.Do(req)
-		defer resp.Body.Close()
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 	}
 
 	if err != nil {
+		if strings.Contains(err.Error(), "request timeout") {
+			l.Warn("request timeout.",
+				zap.String("urlAddress", urlAddress.String()),
+			)
+			return nil, http.StatusRequestTimeout, nil
+		}
+
 		return nil, nil, err
 	}
 
 	return resp.Header, resp.StatusCode, nil
 }
 
-// GetAccount. View Account.
-// https://developers.freshdesk.com/api/#account
-func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "account")
-	if err != nil {
-		return nil, err
-	}
-
-	var res *AccountAPIData
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
 // UpdateAgentRoles. Update an Agent.
 func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int64, userId string) (any, error) {
 	var (
-		body struct {
-			RoleIDs []int64 `json:"role_ids"`
-		}
+		body            UpdateAgentRoles
 		res, statusCode any
 	)
 
