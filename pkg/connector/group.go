@@ -75,17 +75,12 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 
 func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
-	for _, level := range groupEntitlementAccessLevels {
-		rv = append(rv, ent.NewPermissionEntitlement(resource, level,
-			ent.WithDisplayName(fmt.Sprintf("%s Group %s", resource.DisplayName, titleCase(level))),
-			ent.WithDescription(fmt.Sprintf("Access to %s group in FreshService", resource.DisplayName)),
-			ent.WithAnnotation(&v2.V1Identifier{
-				Id: fmt.Sprintf("group:%s:role:%s", resource.Id.Resource, level),
-			}),
-			ent.WithGrantableTo(userResourceType),
-		))
+	assigmentOptions := []ent.EntitlementOption{
+		ent.WithGrantableTo(userResourceType),
+		ent.WithDescription(fmt.Sprintf("Access to %s group in FreshService", resource.DisplayName)),
+		ent.WithDisplayName(fmt.Sprintf("%s Group %s", resource.DisplayName, memberEntitlement)),
 	}
-
+	rv = append(rv, ent.NewAssignmentEntitlement(resource, memberEntitlement, assigmentOptions...))
 	return rv, "", nil, nil
 }
 

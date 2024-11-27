@@ -181,12 +181,9 @@ func TestGroupGrant(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	// --grant-entitlement group:156000164892:member
-	grantEntitlement := "group:156000164892:member"
-	// --grant-principal-type user
+	grantEntitlement := "group:156000295023:member"
 	grantPrincipalType := "user"
-	// --grant-principal "156001103433"
-	grantPrincipal := "156001103433"
+	grantPrincipal := "156001923584"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
 	require.NotNil(t, data)
@@ -218,9 +215,9 @@ func TestRoleGrant(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	grantEntitlement := "role:156000506894:assigned"
+	grantEntitlement := "role:156000869524:assigned"
 	grantPrincipalType := "user"
-	grantPrincipal := "156001115279"
+	grantPrincipal := "156001923584"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
 	require.NotNil(t, data)
