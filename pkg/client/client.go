@@ -386,17 +386,25 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 
 // GetAgentDetail. Get agent detail.
 func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailsAPIData, error) {
+	var (
+		statusCode any
+		err        error
+		res        *AgentDetailsAPIData
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
 		return nil, err
 	}
 
-	var res *AgentDetailsAPIData
-	if _, _, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &AgentDetailsAPIData{}, nil
 }
 
 func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, any, error) {
