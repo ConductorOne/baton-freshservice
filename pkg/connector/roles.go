@@ -53,27 +53,10 @@ func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.R
 }
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	var (
-		pageToken int
-		err       error
-		rv        []*v2.Resource
-	)
-	_, bag, err := unmarshalSkipToken(pToken)
+	var rv []*v2.Resource
+	bag, pageToken, err := handleToken(pToken, userResourceType)
 	if err != nil {
 		return nil, "", nil, err
-	}
-
-	if bag.Current() == nil {
-		bag.Push(pagination.PageState{
-			ResourceTypeID: resourceTypeRole.Id,
-		})
-	}
-
-	if bag.Current().Token != "" {
-		pageToken, err = strconv.Atoi(bag.Current().Token)
-		if err != nil {
-			return nil, "", nil, err
-		}
 	}
 
 	roles, nextPageToken, err := r.client.ListAllRoles(ctx, client.PageOptions{

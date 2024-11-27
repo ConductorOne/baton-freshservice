@@ -99,6 +99,10 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 
 func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, error) {
 	var nextPageToken string = ""
+	if opts.HasNotValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err
@@ -140,6 +144,10 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 
 func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, error) {
 	var nextPageToken string = ""
+	if opts.HasNotValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err
@@ -240,6 +248,10 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 
 func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, error) {
 	var nextPageToken string = ""
+	if opts.HasNotValidPageSize() {
+		opts.PerPage = 100
+	}
+
 	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", err

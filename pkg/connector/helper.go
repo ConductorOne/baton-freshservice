@@ -152,3 +152,26 @@ func accountResource(ctx context.Context, account *client.AccountAPIData, parent
 
 	return resource, nil
 }
+
+func handleToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*pagination.Bag, int, error) {
+	var pageToken int
+	_, bag, err := unmarshalSkipToken(pToken)
+	if err != nil {
+		return bag, 0, err
+	}
+
+	if bag.Current() == nil {
+		bag.Push(pagination.PageState{
+			ResourceTypeID: resourceType.Id,
+		})
+	}
+
+	if bag.Current().Token != "" {
+		pageToken, err = strconv.Atoi(bag.Current().Token)
+		if err != nil {
+			return bag, 0, err
+		}
+	}
+
+	return bag, pageToken, nil
+}
