@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -335,14 +334,16 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
 		body            AddAgentToGroup
-		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s}] }`, userId))
 		res, statusCode any
 	)
-
-	err := json.Unmarshal(payload, &body)
+	user, err := strconv.Atoi(userId)
 	if err != nil {
 		return nil, err
 	}
+
+	body.Agents = append(body.Agents, AgentToGroup{
+		ID: user,
+	})
 
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
 	if err != nil {
@@ -359,15 +360,17 @@ func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userI
 func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, userId string) (any, error) {
 	var (
 		body            RemoveAgentFromGroup
-		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s, "deleted": true}] }`, userId))
 		res, statusCode any
 	)
-
-	err := json.Unmarshal(payload, &body)
+	user, err := strconv.Atoi(userId)
 	if err != nil {
 		return nil, err
 	}
 
+	body.Agents = append(body.Agents, AgentFromGroup{
+		ID:      user,
+		Deleted: true,
+	})
 	agentsUrl, err := url.JoinPath(f.baseUrl, "admin", "groups", groupId, "agents")
 	if err != nil {
 		return nil, err
@@ -454,17 +457,7 @@ func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int
 		body            UpdateAgentRoles
 		res, statusCode any
 	)
-	ids, err := json.Marshal(roleIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	payload := []byte(fmt.Sprintf(`{ "role_ids": %s }`, ids))
-	err = json.Unmarshal(payload, &body)
-	if err != nil {
-		return nil, err
-	}
-
+	body.RoleIDs = append(body.RoleIDs, roleIDs...)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
 		return nil, err

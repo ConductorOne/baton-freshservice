@@ -162,10 +162,12 @@ type TotalAgents struct {
 }
 
 type RemoveAgentFromGroup struct {
-	Agents []struct {
-		ID      int  `json:"id"`
-		Deleted bool `json:"deleted"`
-	} `json:"agents"`
+	Agents []AgentFromGroup `json:"agents"`
+}
+
+type AgentFromGroup struct {
+	ID      int  `json:"id"`
+	Deleted bool `json:"deleted"`
 }
 
 type UpdateAgentRoles struct {
@@ -173,7 +175,9 @@ type UpdateAgentRoles struct {
 }
 
 type AddAgentToGroup struct {
-	Agents []struct {
-		ID int `json:"id"`
-	} `json:"agents"`
+	Agents []AgentToGroup `json:"agents"`
+}
+
+type AgentToGroup struct {
+	ID int `json:"id"`
 }
