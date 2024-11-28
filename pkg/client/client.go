@@ -105,7 +105,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &AgentsAPIData{}, "", err
 	}
 
 	if page.HasNext() {
@@ -136,7 +136,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &AgentsAPIData{}, page, err
 	}
 
 	return res, page, nil
@@ -150,7 +150,7 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 
 	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &GroupsAPIData{}, "", err
 	}
 
 	if page.HasNext() {
@@ -181,7 +181,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &GroupsAPIData{}, page, err
 	}
 
 	return res, page, nil
@@ -255,7 +255,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 
 	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &RolesAPIData{}, "", err
 	}
 
 	if page.HasNext() {
@@ -286,7 +286,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &RolesAPIData{}, page, err
 	}
 
 	return res, page, nil
@@ -447,10 +447,14 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	switch method {
 	case http.MethodGet:
 		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
-		defer resp.Body.Close()
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 	case http.MethodPatch:
 		resp, err = f.httpClient.Do(req)
-		defer resp.Body.Close()
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 	}
 
 	if err != nil {
@@ -470,17 +474,24 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 // GetAccount. View Account.
 // https://developers.freshdesk.com/api/#account
 func (f *FreshServiceClient) GetAccount(ctx context.Context) (*AccountAPIData, error) {
+	var (
+		statusCode any
+		res        *AccountAPIData
+	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "account")
 	if err != nil {
 		return nil, err
 	}
 
-	var res *AccountAPIData
-	if _, _, err := f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
 		return nil, err
 	}
 
-	return res, nil
+	if statusCode != http.StatusRequestTimeout {
+		return res, nil
+	}
+
+	return &AccountAPIData{}, nil
 }
 
 // UpdateAgentRoles. Update an Agent.

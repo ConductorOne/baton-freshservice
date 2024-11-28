@@ -106,7 +106,7 @@ func TestRoleGrants(t *testing.T) {
 		_, tk, _, err := r.Grants(ctxTest, &v2.Resource{
 			Id: &v2.ResourceId{
 				ResourceType: resourceTypeRole.Id,
-				Resource:     "156001103433",
+				Resource:     "156000295023",
 			},
 		}, &pagination.Token{
 			Token: token,
