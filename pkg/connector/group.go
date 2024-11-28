@@ -20,15 +20,7 @@ type groupBuilder struct {
 	client       *client.FreshServiceClient
 }
 
-const (
-	memberEntitlement = "member"
-	adminEntitlement  = "admin"
-)
-
-var groupEntitlementAccessLevels = []string{
-	memberEntitlement,
-	adminEntitlement,
-}
+const memberEntitlement = "member"
 
 func (g *groupBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return g.resourceType
@@ -75,12 +67,13 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 
 func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
-	assigmentOptions := []ent.EntitlementOption{
+	options := []ent.EntitlementOption{
 		ent.WithGrantableTo(userResourceType),
 		ent.WithDescription(fmt.Sprintf("Access to %s group in FreshService", resource.DisplayName)),
 		ent.WithDisplayName(fmt.Sprintf("%s Group %s", resource.DisplayName, memberEntitlement)),
 	}
-	rv = append(rv, ent.NewAssignmentEntitlement(resource, memberEntitlement, assigmentOptions...))
+	rv = append(rv, ent.NewAssignmentEntitlement(resource, memberEntitlement, options...))
+
 	return rv, "", nil, nil
 }
 
@@ -96,7 +89,7 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 			ResourceType: userResourceType.Id,
 			Resource:     fmt.Sprintf("%d", agent),
 		}
-		grant := grant.NewGrant(resource, "member", userId)
+		grant := grant.NewGrant(resource, memberEntitlement, userId)
 		rv = append(rv, grant)
 	}
 

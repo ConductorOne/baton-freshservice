@@ -9,8 +9,6 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
@@ -24,7 +22,6 @@ func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.
 		"user_id":    user.ID,
 		"type":       user.Type,
 	}
-
 	switch !user.Deactivated {
 	case true:
 		userStatus = v2.UserTrait_Status_STATUS_ENABLED
@@ -61,7 +58,6 @@ func userResource(ctx context.Context, user *client.Agent, parentResourceID *v2.
 func splitFullName(name string) (string, string) {
 	names := strings.SplitN(name, " ", 2)
 	var firstName, lastName string
-
 	switch len(names) {
 	case 1:
 		firstName = names[0]
@@ -93,12 +89,6 @@ func groupResource(ctx context.Context, group *client.Group, parentResourceID *v
 	}
 
 	return resource, nil
-}
-
-func titleCase(s string) string {
-	titleCaser := cases.Title(language.English)
-
-	return titleCaser.String(s)
 }
 
 func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error) {
@@ -134,7 +124,6 @@ func accountResource(ctx context.Context, account *client.AccountAPIData, parent
 		"data_center":              account.DataCenter,
 		"timezone":                 account.Timezone,
 	}
-
 	accountTraitOptions := []rs.AppTraitOption{
 		rs.WithAppProfile(profile),
 	}
@@ -174,4 +163,23 @@ func handleToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*pagi
 	}
 
 	return bag, pageToken, nil
+}
+
+func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]interface{}{
+		"id":          role.ID,
+		"name":        role.Name,
+		"description": role.Description,
+		"agent_type":  role.AgentType,
+	}
+	roleTraitOptions := []rs.RoleTraitOption{
+		rs.WithRoleProfile(profile),
+	}
+
+	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
-	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -30,26 +29,6 @@ const (
 
 func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return resourceTypeRole
-}
-
-func roleResource(ctx context.Context, role *client.Role, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	profile := map[string]interface{}{
-		"id":          role.ID,
-		"name":        role.Name,
-		"description": role.Description,
-		"agent_type":  role.AgentType,
-	}
-
-	roleTraitOptions := []rs.RoleTraitOption{
-		rs.WithRoleProfile(profile),
-	}
-
-	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource, nil
 }
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
