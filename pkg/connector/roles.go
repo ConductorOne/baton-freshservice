@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
@@ -12,7 +11,6 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
-	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -81,57 +79,7 @@ func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 }
 
 func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	var (
-		rv            []*v2.Grant
-		nextPageToken string
-	)
-	bag, pageToken, err := handleToken(pToken, resourceTypeRole)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	groups, nextPageToken, err := r.client.ListAllGroups(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
-		Page:    pageToken,
-	})
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	err = bag.Next(nextPageToken)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	for _, group := range *groups {
-		groupId := fmt.Sprintf("%d", group.ID)
-		roles, err := r.client.GetGroupDetail(ctx, groupId)
-		if err != nil {
-			return nil, "", nil, err
-		}
-
-		for _, role := range *roles {
-			rolePos := slices.IndexFunc(role.RoleIDs, func(c int64) bool {
-				roleId := fmt.Sprintf("%d", c)
-				return roleId == resource.Id.Resource
-			})
-			if rolePos != NF {
-				groupId := &v2.ResourceId{
-					ResourceType: groupResourceType.Id,
-					Resource:     groupId,
-				}
-				grant := grant.NewGrant(resource, assignedEntitlement, groupId)
-				rv = append(rv, grant)
-			}
-		}
-	}
-
-	nextPageToken, err = bag.Marshal()
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	return rv, nextPageToken, nil, nil
+	return nil, "", nil, nil
 }
 
 func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {

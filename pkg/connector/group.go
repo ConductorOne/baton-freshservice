@@ -78,19 +78,41 @@ func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, 
 }
 
 func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	var rv []*v2.Grant
-	group, err := g.client.GetGroupById(ctx, resource.Id.Resource)
+	var (
+		rv []*v2.Grant
+		gr *v2.Grant
+	)
+	groupId := resource.Id.Resource
+	groupDetail, err := g.client.GetGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	for _, agent := range group.AgentIDs {
+	for _, group := range *groupDetail {
 		userId := &v2.ResourceId{
 			ResourceType: userResourceType.Id,
-			Resource:     fmt.Sprintf("%d", agent),
+			Resource:     fmt.Sprintf("%d", group.ID),
 		}
-		grant := grant.NewGrant(resource, memberEntitlement, userId)
-		rv = append(rv, grant)
+		// group members
+		gr = grant.NewGrant(resource, memberEntitlement, userId)
+		rv = append(rv, gr)
+
+		for _, roleId := range group.RoleIDs {
+			roleRes, err := roleResource(ctx, &client.Role{
+				ID: roleId,
+			}, nil)
+			if err != nil {
+				return nil, "", nil, err
+			}
+
+			groupId := &v2.ResourceId{
+				ResourceType: groupResourceType.Id,
+				Resource:     groupId,
+			}
+			// group roles
+			gr = grant.NewGrant(roleRes, assignedEntitlement, groupId)
+			rv = append(rv, gr)
+		}
 	}
 
 	return rv, "", nil, nil

@@ -16,7 +16,6 @@ var (
 		Description: "Users of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
 	}
-
 	groupResourceType = &v2.ResourceType{
 		Id:          "group",
 		DisplayName: "Group",
