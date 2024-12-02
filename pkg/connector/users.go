@@ -67,12 +67,12 @@ func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	userId := resource.Id.Resource
-	roles, err := u.client.GetAgentDetail(ctx, userId)
+	agentDetail, err := u.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	for _, role := range roles.Agent.Roles {
+	for _, role := range agentDetail.Agent.Roles {
 		roleRes, err := roleResource(ctx, &client.Roles{
 			ID: role.RoleID,
 		}, nil)

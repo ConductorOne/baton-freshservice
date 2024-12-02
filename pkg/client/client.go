@@ -80,7 +80,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return freshServiceClient, err
 	}
 
-	baseUrl := fmt.Sprintf("%s/api/v2", domain)
+	baseUrl := fmt.Sprintf("https://%s.freshservice.com/api/v2", domain)
 	if !isValidUrl(baseUrl) {
 		return nil, fmt.Errorf("the url : %s is not valid", baseUrl)
 	}
@@ -117,7 +117,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 }
 
 // GetUsers. List All Agents(Users).
-// https://developers.freshdesk.com/api/#agents
+// https://api.freshservice.com/v2/#list_all_agents
 func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIDataV2, Page, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
 	if err != nil {
@@ -162,7 +162,7 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 }
 
 // GetGroups. List All Agent Groups(Groups).
-// https://developers.freshdesk.com/api/#groups
+// https://api.freshservice.com/v2/#view_all_group
 func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIDataV2, Page, error) {
 	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
@@ -271,7 +271,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 }
 
 // GetRoles. List All Roles.
-// https://developers.freshdesk.com/api/#roles
+// https://api.freshservice.com/v2/#view_all_role
 func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIDataV2, Page, error) {
 	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
@@ -307,7 +307,7 @@ func getNextLink(linkUrl []string) (*url.URL, error) {
 }
 
 // GetAgentsByGroupId. List All Agents in a Group.
-// https://developers.freshdesk.com/api/#groups
+// https://api.freshservice.com/v2/#view_a_group
 func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, error) {
 	var (
 		statusCode any
@@ -379,6 +379,7 @@ func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, 
 }
 
 // GetAgentDetail. Get agent detail.
+// https://api.freshservice.com/v2/#view_an_agent
 func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, error) {
 	var (
 		statusCode any
