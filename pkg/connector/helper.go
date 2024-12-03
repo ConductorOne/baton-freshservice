@@ -8,9 +8,6 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 func userResource(ctx context.Context, user *client.Agents, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
@@ -76,12 +73,6 @@ func groupResource(ctx context.Context, group *client.Group, parentResourceID *v
 	}
 
 	return resource, nil
-}
-
-func titleCase(s string) string {
-	titleCaser := cases.Title(language.English)
-
-	return titleCaser.String(s)
 }
 
 func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error) {
