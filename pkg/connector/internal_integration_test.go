@@ -12,6 +12,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	"github.com/stretchr/testify/require"
 )
 
@@ -187,12 +188,9 @@ func TestGroupGrant(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	// --grant-entitlement group:156000164892:member
-	grantEntitlement := "group:156000164892:member"
-	// --grant-principal-type user
+	grantEntitlement := "group:33000063690:member"
 	grantPrincipalType := "user"
-	// --grant-principal "156001103433"
-	grantPrincipal := "156001103433"
+	grantPrincipal := "33000161832"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
 	require.NotNil(t, data)
@@ -202,16 +200,41 @@ func TestGroupGrant(t *testing.T) {
 	require.Nil(t, err)
 
 	entitlement := getEntitlementForTesting(resource, grantPrincipalType, roleEntitlement)
-	r := &groupBuilder{
+	g := &groupBuilder{
 		resourceType: resourceTypeRole,
 		client:       cliTest,
 	}
-	_, err = r.Grant(ctxTest, &v2.Resource{
+	_, err = g.Grant(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{
 			ResourceType: userResourceType.Id,
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
+	require.Nil(t, err)
+}
+
+func TestGroupRevoke(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	grantId := "group:33000063690:member:user:33000161832"
+	data := strings.Split(grantId, ":")
+	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	resource, err := getGroupForTesting(ctxTest, data[1], "local_group", "test")
+	require.Nil(t, err)
+
+	gr := grant.NewGrant(resource, "member", principalID)
+	require.NotNil(t, gr)
+
+	g := &groupBuilder{
+		resourceType: resourceTypeRole,
+		client:       cliTest,
+	}
+	_, err = g.Revoke(ctxTest, gr)
 	require.Nil(t, err)
 }
 

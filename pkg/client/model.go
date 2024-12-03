@@ -210,7 +210,5 @@ type RemoveAgentFromGroup struct {
 }
 
 type AddAgentToGroup struct {
-	Agents []struct {
-		ID int `json:"id"`
-	} `json:"agents"`
+	Members []int64 `json:"members"`
 }

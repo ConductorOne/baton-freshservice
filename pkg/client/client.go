@@ -330,48 +330,21 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	return &GroupDetailAPIData{}, nil
 }
 
-func (f *FreshServiceClient) AddAgentToGroup(ctx context.Context, groupId, userId string) (any, error) {
+// UpdateAgentsInGroup. Update the existing group to add another agent to the group
+// https://api.freshservice.com/v2/#update_a_group
+func (f *FreshServiceClient) UpdateAgentsInGroup(ctx context.Context, groupId string, usersId []int64) (any, error) {
 	var (
 		body            AddAgentToGroup
-		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s}] }`, userId))
 		res, statusCode any
 	)
 
-	err := json.Unmarshal(payload, &body)
+	body.Members = usersId
+	groupUrl, err := url.JoinPath(f.baseUrl, "groups", groupId)
 	if err != nil {
 		return nil, err
 	}
 
-	agentsUrl, err := url.JoinPath(f.baseUrl, "groups", groupId, "agents")
-	if err != nil {
-		return nil, err
-	}
-
-	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
-		return statusCode, err
-	}
-
-	return statusCode, nil
-}
-
-func (f *FreshServiceClient) RemoveAgentFromGroup(ctx context.Context, groupId, userId string) (any, error) {
-	var (
-		body            RemoveAgentFromGroup
-		payload         = []byte(fmt.Sprintf(`{ "agents":[{"id": %s, "deleted": true}] }`, userId))
-		res, statusCode any
-	)
-
-	err := json.Unmarshal(payload, &body)
-	if err != nil {
-		return nil, err
-	}
-
-	agentsUrl, err := url.JoinPath(f.baseUrl, "groups", groupId, "agents")
-	if err != nil {
-		return nil, err
-	}
-
-	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodPut, groupUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
@@ -430,7 +403,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		if resp != nil {
 			defer resp.Body.Close()
 		}
-	case http.MethodPatch:
+	case http.MethodPatch, http.MethodPut:
 		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
@@ -438,7 +411,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	}
 
 	if err != nil {
-		if strings.Contains(err.Error(), "request timeout") {
+		if strings.Contains(err.Error(), "request timeout") || resp.StatusCode == http.StatusRequestTimeout {
 			l.Warn("request timeout.",
 				zap.String("urlAddress", urlAddress.String()),
 			)

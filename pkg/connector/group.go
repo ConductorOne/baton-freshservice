@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"strconv"
+
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -86,7 +88,10 @@ func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, 
 }
 
 func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	var rv []*v2.Grant
+	var (
+		rv []*v2.Grant
+		gr *v2.Grant
+	)
 	data, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
 	if err != nil {
 		return nil, "", nil, err
@@ -97,8 +102,8 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 			ResourceType: userResourceType.Id,
 			Resource:     fmt.Sprintf("%d", agent),
 		}
-		grant := grant.NewGrant(resource, memberEntitlement, userId)
-		rv = append(rv, grant)
+		gr = grant.NewGrant(resource, memberEntitlement, userId)
+		rv = append(rv, gr)
 	}
 
 	return rv, "", nil, nil
@@ -117,12 +122,23 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 
 	groupId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	statusCode, err := g.client.AddAgentToGroup(ctx, groupId, userId)
+	groupDetail, err := g.client.GetGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
 
-	if http.StatusNoContent == statusCode {
+	user, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
+	statusCode, err := g.client.UpdateAgentsInGroup(ctx, groupId, groupDetail.Group.Members)
+	if err != nil {
+		return nil, err
+	}
+
+	if http.StatusOK == statusCode {
 		l.Warn("Membership has been created.",
 			zap.String("userId", userId),
 			zap.String("groupId", groupId),
@@ -148,12 +164,34 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	statusCode, err := g.client.RemoveAgentFromGroup(ctx, groupId, userId)
+	groupDetail, err := g.client.GetGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
 
-	if http.StatusNoContent == statusCode {
+	user, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var members []int64
+	for _, member := range groupDetail.Group.Members {
+		if member == user {
+			continue
+		}
+
+		members = append(members, member)
+	}
+
+	statusCode, err := g.client.UpdateAgentsInGroup(ctx,
+		groupId,
+		members,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if http.StatusOK == statusCode {
 		l.Warn("Membership has been revoked.",
 			zap.String("userId", userId),
 			zap.String("groupId", groupId),
