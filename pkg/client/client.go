@@ -330,9 +330,9 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	return &GroupDetailAPIData{}, nil
 }
 
-// UpdateAgentsInGroup. Update the existing group to add another agent to the group
+// UpdateGroupMembers. Update the existing group to add another agent to the group
 // https://api.freshservice.com/v2/#update_a_group
-func (f *FreshServiceClient) UpdateAgentsInGroup(ctx context.Context, groupId string, usersId []int64) (any, error) {
+func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId string, usersId []int64) (any, error) {
 	var (
 		body            AddAgentToGroup
 		res, statusCode any

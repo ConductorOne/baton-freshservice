@@ -133,7 +133,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	statusCode, err := g.client.UpdateAgentsInGroup(ctx, groupId, groupDetail.Group.Members)
+	statusCode, err := g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	statusCode, err := g.client.UpdateAgentsInGroup(ctx,
+	statusCode, err := g.client.UpdateGroupMembers(ctx,
 		groupId,
 		members,
 	)
