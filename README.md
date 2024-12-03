@@ -8,20 +8,17 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
-Freshservice is an online IT service desk with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [www.freshservice.com](https://www.freshworks.com) and click on the Sign up button on the top right corner. You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. 
-
-Once you’re done with filling all the details, click on Sign up for FREE. 
+Freshservice is an online IT service with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [https://www.freshworks.com/freshservice/signup/](https://www.freshworks.com/freshservice/signup/). You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. Once you’re done with filling all the details, click on `Try it Fee`. 
 
 ## Prerequisites
 
-API key and full domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
+API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
 
 ## How to get your Freshservice API key (4 steps) 
 
 1.- Log in, then, on the top right corner of Freshservice's homepage, you should see an icon of a person.
 2.- Click on profile settings.
 3.- Complete the CAPTCHA to access your API key.
-4.- Copy your API key and store it in a secure location.
 
 ## brew
 
