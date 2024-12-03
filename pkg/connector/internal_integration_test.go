@@ -247,9 +247,9 @@ func TestRoleGrant(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	grantEntitlement := "role:156000506894:assigned"
+	grantEntitlement := "role:33000064223:assigned"
 	grantPrincipalType := "user"
-	grantPrincipal := "156001115279"
+	grantPrincipal := "33000161901"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
 	require.NotNil(t, data)
@@ -269,6 +269,31 @@ func TestRoleGrant(t *testing.T) {
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
+	require.Nil(t, err)
+}
+
+func TestRoleRevoke(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	grantId := "role:33000064223:assigned:user:33000161901"
+	data := strings.Split(grantId, ":")
+	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	resource, err := getRoleForTesting(ctxTest, data[1], "role_agent", "test")
+	require.Nil(t, err)
+
+	gr := grant.NewGrant(resource, data[2], principalID)
+	require.NotNil(t, gr)
+
+	r := &roleBuilder{
+		resourceType: resourceTypeRole,
+		client:       cliTest,
+	}
+	_, err = r.Revoke(ctxTest, gr)
 	require.Nil(t, err)
 }
 

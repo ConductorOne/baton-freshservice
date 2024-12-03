@@ -105,16 +105,26 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		return nil, err
 	}
 
-	var roleIDs []int64
+	var bodyRoles []client.BodyRole
 	for _, role := range roles.Agent.Roles {
-		roleIDs = append(roleIDs, role.RoleID)
+		bodyRoles = append(bodyRoles, client.BodyRole{
+			RoleID:          role.RoleID,
+			AssignmentScope: "assigned_items",
+		})
 	}
 
 	// Adding new role
-	roleIDs = append(roleIDs, roleId64)
-	statusCode, err := r.client.UpdateAgentRoles(ctx, roleIDs, userId)
-	if err != nil {
-		return nil, err
+	bodyRoles = append(bodyRoles, client.BodyRole{
+		RoleID:          roleId64,
+		AssignmentScope: "assigned_items",
+	})
+
+	var statusCode any
+	if roles.Agent.Roles != nil {
+		statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if http.StatusOK == statusCode {
@@ -152,18 +162,24 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		return nil, err
 	}
 
-	var roleIDs []int64
+	var bodyRoles []client.BodyRole
 	for _, role := range roles.Agent.Roles {
 		if roleId64 == role.RoleID {
 			continue
 		}
 
-		roleIDs = append(roleIDs, role.RoleID)
+		bodyRoles = append(bodyRoles, client.BodyRole{
+			RoleID:          role.RoleID,
+			AssignmentScope: "assigned_items",
+		})
 	}
 
-	statusCode, err := r.client.UpdateAgentRoles(ctx, roleIDs, userId)
-	if err != nil {
-		return nil, err
+	var statusCode any
+	if roles.Agent.Roles != nil {
+		statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if http.StatusOK == statusCode {

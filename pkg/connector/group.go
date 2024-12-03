@@ -133,9 +133,13 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	statusCode, err := g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
-	if err != nil {
-		return nil, err
+
+	var statusCode any
+	if groupDetail.Group.Members != nil {
+		statusCode, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if http.StatusOK == statusCode {
@@ -183,12 +187,15 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	statusCode, err := g.client.UpdateGroupMembers(ctx,
-		groupId,
-		members,
-	)
-	if err != nil {
-		return nil, err
+	var statusCode any
+	if groupDetail.Group.Members != nil {
+		statusCode, err = g.client.UpdateGroupMembers(ctx,
+			groupId,
+			members,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if http.StatusOK == statusCode {

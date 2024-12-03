@@ -199,16 +199,14 @@ type Availability struct {
 }
 
 type UpdateAgentRoles struct {
-	RoleIDs []int64 `json:"role_ids"`
+	Roles []BodyRole `json:"roles"`
 }
 
-type RemoveAgentFromGroup struct {
-	Agents []struct {
-		ID      int  `json:"id"`
-		Deleted bool `json:"deleted"`
-	} `json:"agents"`
+type BodyRole struct {
+	RoleID          int64  `json:"role_id"`
+	AssignmentScope string `json:"assignment_scope"`
 }
 
-type AddAgentToGroup struct {
+type GroupMembers struct {
 	Members []int64 `json:"members"`
 }

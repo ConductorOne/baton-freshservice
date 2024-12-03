@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -106,7 +105,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &AgentsAPIDataV2{}, "", err
 	}
 
 	if page.HasNext() {
@@ -151,7 +150,7 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 
 	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &GroupsAPIDataV2{}, "", err
 	}
 
 	if page.HasNext() {
@@ -260,7 +259,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 
 	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", err
+		return &RolesAPIDataV2{}, "", err
 	}
 
 	if page.HasNext() {
@@ -334,7 +333,7 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 // https://api.freshservice.com/v2/#update_a_group
 func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId string, usersId []int64) (any, error) {
 	var (
-		body            AddAgentToGroup
+		body            GroupMembers
 		res, statusCode any
 	)
 
@@ -415,7 +414,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 			l.Warn("request timeout.",
 				zap.String("urlAddress", urlAddress.String()),
 			)
-			return nil, http.StatusRequestTimeout, nil
+			return http.Header{}, http.StatusRequestTimeout, nil
 		}
 
 		return nil, nil, err
@@ -425,29 +424,20 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 }
 
 // UpdateAgentRoles. Update an Agent.
-func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []int64, userId string) (any, error) {
+// https://api.freshservice.com/v2/#update_an_agent
+func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []BodyRole, userId string) (any, error) {
 	var (
 		body            UpdateAgentRoles
 		res, statusCode any
 	)
 
-	ids, err := json.Marshal(roleIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	payload := []byte(fmt.Sprintf(`{ "role_ids": %s }`, ids))
-	err = json.Unmarshal(payload, &body)
-	if err != nil {
-		return nil, err
-	}
-
+	body.Roles = roleIDs
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, statusCode, err = f.doRequest(ctx, http.MethodPatch, agentsUrl, &res, body); err != nil {
+	if _, statusCode, err = f.doRequest(ctx, http.MethodPut, agentsUrl, &res, body); err != nil {
 		return statusCode, err
 	}
 
