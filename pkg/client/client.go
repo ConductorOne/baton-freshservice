@@ -97,7 +97,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIDataV2, string, any, error) {
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
@@ -105,7 +105,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 	users, page, statusCode, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &AgentsAPIDataV2{}, "", statusCode, err
+		return &AgentsAPIData{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
@@ -117,7 +117,7 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 // GetUsers. List All Agents(Users).
 // https://api.freshservice.com/v2/#list_all_agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIDataV2, Page, any, error) {
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIData, Page, any, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
 	if err != nil {
 		return nil, Page{}, nil, err
@@ -128,7 +128,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		return nil, Page{}, nil, err
 	}
 
-	var res *AgentsAPIDataV2
+	var res *AgentsAPIData
 	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -136,13 +136,13 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return &AgentsAPIDataV2{}, page, statusCode, err
+		return &AgentsAPIData{}, page, statusCode, err
 	}
 
 	return res, page, statusCode, nil
 }
 
-func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIDataV2, string, any, error) {
+func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
@@ -150,7 +150,7 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 
 	groups, page, statusCode, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &GroupsAPIDataV2{}, "", statusCode, err
+		return &GroupsAPIData{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
@@ -162,7 +162,7 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 
 // GetGroups. List All Agent Groups(Groups).
 // https://api.freshservice.com/v2/#view_all_group
-func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIDataV2, Page, any, error) {
+func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, any, error) {
 	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
 		return nil, Page{}, nil, err
@@ -173,7 +173,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		return nil, Page{}, nil, err
 	}
 
-	var res *GroupsAPIDataV2
+	var res *GroupsAPIData
 	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -181,7 +181,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		&res,
 	)
 	if err != nil {
-		return &GroupsAPIDataV2{}, page, statusCode, err
+		return &GroupsAPIData{}, page, statusCode, err
 	}
 
 	return res, page, statusCode, nil
@@ -239,7 +239,7 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 
 // setRawQuery. Set query parameters.
 // page : number for the page (inclusive). If not passed, first page is assumed.
-// per_page : Number of items to return. If not passed, a page size of 30 is used.
+// per_page : Number of items to return. If not passed, a page size of 100 is used.
 func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 	q := uri.Query()
 	q.Set("per_page", limitPerPage)
@@ -247,7 +247,7 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 	uri.RawQuery = q.Encode()
 }
 
-func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIDataV2, string, any, error) {
+func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
@@ -255,7 +255,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 
 	roles, page, statusCode, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &RolesAPIDataV2{}, "", statusCode, err
+		return &RolesAPIData{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
@@ -267,7 +267,7 @@ func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions)
 
 // GetRoles. List All Roles.
 // https://api.freshservice.com/v2/#view_all_role
-func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIDataV2, Page, any, error) {
+func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIData, Page, any, error) {
 	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
 		return nil, Page{}, nil, err
@@ -278,7 +278,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		return nil, Page{}, nil, err
 	}
 
-	var res *RolesAPIDataV2
+	var res *RolesAPIData
 	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
@@ -286,7 +286,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return &RolesAPIDataV2{}, page, statusCode, err
+		return &RolesAPIData{}, page, statusCode, err
 	}
 
 	return res, page, statusCode, nil
@@ -301,7 +301,7 @@ func getNextLink(linkUrl []string) (*url.URL, error) {
 	return nextUrl, err
 }
 
-// GetAgentsByGroupId. List All Agents in a Group.
+// GetGroupDetail. List All Agents in a Group.
 // https://api.freshservice.com/v2/#view_a_group
 func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, any, error) {
 	var (
@@ -399,7 +399,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		if resp != nil {
 			defer resp.Body.Close()
 		}
-	case http.MethodPatch, http.MethodPut:
+	case http.MethodPut:
 		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()

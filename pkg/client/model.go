@@ -8,7 +8,7 @@ type auth struct {
 	bearerToken string
 }
 
-type AgentsAPIDataV2 struct {
+type AgentsAPIData struct {
 	Agents []Agents `json:"agents,omitempty"`
 }
 
@@ -110,7 +110,7 @@ type AutomaticAgentAssignment struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-type RolesAPIDataV2 struct {
+type RolesAPIData struct {
 	Roles []Roles `json:"roles,omitempty"`
 	Meta  Meta    `json:"meta,omitempty"`
 }
@@ -131,13 +131,7 @@ type Meta struct {
 	CoPilotLicCount  int `json:"co_pilot_lic_count"`
 }
 
-type GroupContact struct {
-	Name   string   `json:"name,omitempty"`
-	Avatar struct{} `json:"avatar,omitempty"`
-	Email  string   `json:"email,omitempty"`
-}
-
-type GroupsAPIDataV2 struct {
+type GroupsAPIData struct {
 	Groups []Group `json:"groups,omitempty"`
 }
 
@@ -165,37 +159,6 @@ type Groups struct {
 
 type GroupDetailAPIData struct {
 	Group Groups `json:"group"`
-}
-
-type AgentDetailsAPIData struct {
-	ID                      int64          `json:"id,omitempty"`
-	OrgAgentID              string         `json:"org_agent_id,omitempty"`
-	GroupIDs                []int64        `json:"group_ids,omitempty"`
-	OrgGroupIDs             []any          `json:"org_group_ids,omitempty"`
-	Deactivated             bool           `json:"deactivated,omitempty"`
-	Available               bool           `json:"available,omitempty"`
-	AvailableSince          any            `json:"available_since,omitempty"`
-	Occasional              bool           `json:"occasional,omitempty"`
-	TicketScope             int            `json:"ticket_scope,omitempty"`
-	RoleIDs                 []int64        `json:"role_ids,omitempty"`
-	SkillIDs                []any          `json:"skill_ids,omitempty"`
-	Type                    string         `json:"type,omitempty"`
-	LastActiveAt            time.Time      `json:"last_active_at,omitempty"`
-	CreatedAt               time.Time      `json:"created_at,omitempty"`
-	UpdatedAt               time.Time      `json:"updated_at,omitempty"`
-	ContributionGroupIDs    []any          `json:"contribution_group_ids,omitempty"`
-	OrgContributionGroupIDs []any          `json:"org_contribution_group_ids,omitempty"`
-	Signature               any            `json:"signature,omitempty"`
-	Contact                 Contact        `json:"contact,omitempty"`
-	Scope                   int            `json:"scope,omitempty"`
-	Availability            []Availability `json:"availability,omitempty"`
-	FocusMode               bool           `json:"focus_mode,omitempty"`
-}
-
-type Availability struct {
-	Channel        string    `json:"channel,omitempty"`
-	Available      bool      `json:"available,omitempty"`
-	AvailableSince time.Time `json:"available_since,omitempty"`
 }
 
 type UpdateAgentRoles struct {
