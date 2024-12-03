@@ -14,6 +14,13 @@ Freshservice is an online IT service with a fresh twist. When you sign up for Fr
 
 API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
 
+Your domain name is the subdomain provided by freshservice. 
+Ex: https://domain.freshservice.com
+
+https://support.freshservice.com -> support
+
+https://solutions.freshservice.com -> solutions
+
 ## How to get your Freshservice API key (4 steps) 
 
 1.- Log in, then, on the top right corner of Freshservice's homepage, you should see an icon of a person.
