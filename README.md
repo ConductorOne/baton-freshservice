@@ -8,7 +8,7 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
-Freshservice is an online IT service with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [https://www.freshworks.com/freshservice/signup/](https://www.freshworks.com/freshservice/signup/). You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. Once you’re done with filling all the details, click on `Try it Fee`. 
+Freshservice is an online IT service with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [https://www.freshworks.com/freshservice/signup/](https://www.freshworks.com/freshservice/signup/). You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. Once you’re done with filling all the details, click on `Try it Free`. 
 
 ## Prerequisites
 
@@ -21,10 +21,12 @@ https://support.freshservice.com -> support
 
 https://solutions.freshservice.com -> solutions
 
-## How to get your Freshservice API key (4 steps) 
+## How to get your Freshservice API key (3 steps) 
 
 1.- Log in, then, on the top right corner of Freshservice's homepage, you should see an icon of a person.
+
 2.- Click on profile settings.
+
 3.- Complete the CAPTCHA to access your API key.
 
 ## brew
