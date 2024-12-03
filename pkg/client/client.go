@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -74,7 +75,12 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return nil, err
 	}
 
-	cli, err := uhttp.NewBaseHttpClientWithContext(context.Background(), httpClient)
+	// https://api.freshservice.com/v2/#rate_limit
+	// Rate Limit/Min Ex. List All Agents: 40
+	cli, err := uhttp.NewBaseHttpClientWithContext(context.Background(),
+		httpClient,
+		uhttp.WithRateLimiter(40, time.Minute),
+	)
 	if err != nil {
 		return freshServiceClient, err
 	}
