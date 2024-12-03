@@ -53,7 +53,7 @@ jobs:
       - name: Run baton-freshservice
         env:
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
+          BATON_DOMAIN: 'conductoronehelpdesk'
           BATON_DISABLE_HTTP_CACHE: true
         run: ./baton-freshservice
       - name: Checkout baton
