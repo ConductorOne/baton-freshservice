@@ -41,6 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BATON_LOG_LEVEL: debug
+      BATON_DISABLE_HTTP_CACHE: true
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
