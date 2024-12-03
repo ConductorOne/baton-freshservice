@@ -70,7 +70,7 @@ jobs:
           BATON: ./baton/baton
           BATON_FRESHSERVICE: ./baton-freshservice
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
+          BATON_DOMAIN: 'conductoronehelpdesk'
           BATON_GRANT: 'group:33000063690:member:user:33000161832'
           BATON_ENTITLEMENT: 'group:33000063690:member'
           BATON_PRINCIPAL_TYPE: 'user'
