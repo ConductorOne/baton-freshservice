@@ -76,3 +76,14 @@ jobs:
           BATON_PRINCIPAL_TYPE: 'user'
           BATON_PRINCIPAL: '33000161832'
         run: ./test/grant-revoke.sh
+      - name: Test grant/revoking roles
+        env:
+          BATON: ./baton/baton
+          BATON_FRESHSERVICE: ./baton-freshservice
+          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
+          BATON_DOMAIN: 'conductoronehelpdesk'
+          BATON_GRANT: 'role:33000064223:assigned:user:33000161901'
+          BATON_ENTITLEMENT: 'role:33000064223:assigned'
+          BATON_PRINCIPAL_TYPE: 'user'
+          BATON_PRINCIPAL: '33000161901'
+        run: ./test/grant-revoke.sh
