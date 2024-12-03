@@ -41,7 +41,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BATON_LOG_LEVEL: debug
-      BATON_DISABLE_HTTP_CACHE: true
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -55,6 +54,7 @@ jobs:
         env:
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
           BATON_DOMAIN: ${{ secrets.BATON_DOMAIN }}
+          BATON_DISABLE_HTTP_CACHE: true
         run: ./baton-freshservice
       - name: Checkout baton
         uses: actions/checkout@v4
