@@ -136,7 +136,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &AgentsAPIDataV2{}, page, err
 	}
 
 	return res, page, nil
@@ -181,7 +181,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &GroupsAPIDataV2{}, page, err
 	}
 
 	return res, page, nil
@@ -290,7 +290,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 		&res,
 	)
 	if err != nil {
-		return nil, page, err
+		return &RolesAPIDataV2{}, page, err
 	}
 
 	return res, page, nil
@@ -417,7 +417,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 			return http.Header{}, http.StatusRequestTimeout, nil
 		}
 
-		return nil, nil, err
+		return http.Header{}, nil, err
 	}
 
 	return resp.Header, resp.StatusCode, nil
