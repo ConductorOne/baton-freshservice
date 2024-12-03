@@ -207,10 +207,6 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 
 	setRawQuery(uri, sPage, limitPerPage)
 	if header, statusCode, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
-		if statusCode != http.StatusRequestTimeout {
-			return page, statusCode, err
-		}
-
 		return page, statusCode, err
 	}
 
@@ -307,7 +303,7 @@ func getNextLink(linkUrl []string) (*url.URL, error) {
 
 // GetAgentsByGroupId. List All Agents in a Group.
 // https://api.freshservice.com/v2/#view_a_group
-func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, error) {
+func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, any, error) {
 	var (
 		statusCode any
 		err        error
@@ -315,18 +311,18 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	)
 	groupUrl, err := url.JoinPath(f.baseUrl, "groups", groupId)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
-		return nil, err
+		if statusCode != http.StatusRequestTimeout {
+			return res, statusCode, nil
+		}
+
+		return nil, statusCode, err
 	}
 
-	if statusCode != http.StatusRequestTimeout {
-		return res, nil
-	}
-
-	return &GroupDetailAPIData{}, nil
+	return &GroupDetailAPIData{}, statusCode, nil
 }
 
 // UpdateGroupMembers. Update the existing group to add another agent to the group
@@ -352,7 +348,7 @@ func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId str
 
 // GetAgentDetail. Get agent detail.
 // https://api.freshservice.com/v2/#view_an_agent
-func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, error) {
+func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, any, error) {
 	var (
 		statusCode any
 		err        error
@@ -360,18 +356,18 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
-		return nil, err
+		return nil, statusCode, err
 	}
 
 	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, err
+		if statusCode != http.StatusRequestTimeout {
+			return res, statusCode, nil
+		}
+
+		return nil, statusCode, err
 	}
 
-	if statusCode != http.StatusRequestTimeout {
-		return res, nil
-	}
-
-	return &AgentDetailAPIData{}, nil
+	return &AgentDetailAPIData{}, statusCode, nil
 }
 
 func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, any, error) {

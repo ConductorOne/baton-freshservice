@@ -76,8 +76,12 @@ func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	userId := resource.Id.Resource
-	agentDetail, err := u.client.GetAgentDetail(ctx, userId)
+	agentDetail, statusCode, err := u.client.GetAgentDetail(ctx, userId)
 	if err != nil {
+		if statusCode == http.StatusRequestTimeout {
+			return rv, "", nil, err
+		}
+
 		return nil, "", nil, err
 	}
 

@@ -103,7 +103,7 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	roleId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	roles, err := r.client.GetAgentDetail(ctx, userId)
+	roles, _, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
-	roles, err := r.client.GetAgentDetail(ctx, userId)
+	roles, _, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
