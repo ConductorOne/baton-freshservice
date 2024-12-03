@@ -91,6 +91,7 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 }
 
 func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	var statusCode any
 	l := ctxzap.Extract(ctx)
 	if principal.Id.ResourceType != userResourceType.Id {
 		l.Warn(
@@ -106,6 +107,10 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	roles, _, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
+	}
+
+	if roles.Agent.Roles == nil {
+		return nil, nil
 	}
 
 	roleId64, err := strconv.ParseInt(roleId, 10, 64)
@@ -127,12 +132,9 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		AssignmentScope: "assigned_items",
 	})
 
-	var statusCode any
-	if roles.Agent.Roles != nil {
-		statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
-		if err != nil {
-			return nil, err
-		}
+	statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	if err != nil {
+		return nil, err
 	}
 
 	if http.StatusOK == statusCode {
@@ -165,6 +167,10 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		return nil, err
 	}
 
+	if roles.Agent.Roles == nil {
+		return nil, nil
+	}
+
 	roleId64, err := strconv.ParseInt(roleId, 10, 64)
 	if err != nil {
 		return nil, err
@@ -183,11 +189,9 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	}
 
 	var statusCode any
-	if roles.Agent.Roles != nil {
-		statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
-		if err != nil {
-			return nil, err
-		}
+	statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	if err != nil {
+		return nil, err
 	}
 
 	if http.StatusOK == statusCode {

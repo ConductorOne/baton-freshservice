@@ -122,6 +122,7 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 }
 
 func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	var statusCode any
 	l := ctxzap.Extract(ctx)
 	if principal.Id.ResourceType != userResourceType.Id {
 		l.Warn(
@@ -139,18 +140,19 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 		return nil, err
 	}
 
+	if groupDetail.Group.Members == nil {
+		return nil, nil
+	}
+
 	user, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	var statusCode any
-	if groupDetail.Group.Members != nil {
-		statusCode, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
-		if err != nil {
-			return nil, err
-		}
+	statusCode, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
+	if err != nil {
+		return nil, err
 	}
 
 	if http.StatusOK == statusCode {
@@ -164,6 +166,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 }
 
 func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	var statusCode any
 	l := ctxzap.Extract(ctx)
 	principal := grant.Principal
 	entitlement := grant.Entitlement
@@ -184,6 +187,10 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		return nil, err
 	}
 
+	if groupDetail.Group.Members == nil {
+		return nil, nil
+	}
+
 	user, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {
 		return nil, err
@@ -198,15 +205,12 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	var statusCode any
-	if groupDetail.Group.Members != nil {
-		statusCode, err = g.client.UpdateGroupMembers(ctx,
-			groupId,
-			members,
-		)
-		if err != nil {
-			return nil, err
-		}
+	statusCode, err = g.client.UpdateGroupMembers(ctx,
+		groupId,
+		members,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	if http.StatusOK == statusCode {

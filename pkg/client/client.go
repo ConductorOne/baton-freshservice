@@ -315,11 +315,11 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	}
 
 	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
-		if statusCode != http.StatusRequestTimeout {
-			return res, statusCode, nil
-		}
-
 		return nil, statusCode, err
+	}
+
+	if statusCode != http.StatusRequestTimeout {
+		return res, statusCode, nil
 	}
 
 	return &GroupDetailAPIData{}, statusCode, nil
@@ -360,11 +360,11 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	}
 
 	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		if statusCode != http.StatusRequestTimeout {
-			return res, statusCode, nil
-		}
-
 		return nil, statusCode, err
+	}
+
+	if statusCode != http.StatusRequestTimeout {
+		return res, statusCode, nil
 	}
 
 	return &AgentDetailAPIData{}, statusCode, nil
