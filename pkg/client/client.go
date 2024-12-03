@@ -389,6 +389,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		method,
 		urlAddress,
 		uhttp.WithAcceptJSONHeader(),
+		uhttp.WithContentTypeJSONHeader(),
 		WithSetBasicAuth(f.getToken(), "X"),
 		uhttp.WithJSONBody(body),
 	)
