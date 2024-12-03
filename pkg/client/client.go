@@ -97,94 +97,94 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIDataV2, string, error) {
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIDataV2, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
 	}
 
-	users, page, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	users, page, statusCode, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &AgentsAPIDataV2{}, "", err
+		return &AgentsAPIDataV2{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
 		nextPageToken = *page.NextPage
 	}
 
-	return users, nextPageToken, nil
+	return users, nextPageToken, statusCode, nil
 }
 
 // GetUsers. List All Agents(Users).
 // https://api.freshservice.com/v2/#list_all_agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIDataV2, Page, error) {
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIDataV2, Page, any, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(agentsUrl)
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	var res *AgentsAPIDataV2
-	page, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return &AgentsAPIDataV2{}, page, err
+		return &AgentsAPIDataV2{}, page, statusCode, err
 	}
 
-	return res, page, nil
+	return res, page, statusCode, nil
 }
 
-func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIDataV2, string, error) {
+func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIDataV2, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
 	}
 
-	groups, page, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	groups, page, statusCode, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &GroupsAPIDataV2{}, "", err
+		return &GroupsAPIDataV2{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
 		nextPageToken = *page.NextPage
 	}
 
-	return groups, nextPageToken, nil
+	return groups, nextPageToken, statusCode, nil
 }
 
 // GetGroups. List All Agent Groups(Groups).
 // https://api.freshservice.com/v2/#view_all_group
-func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIDataV2, Page, error) {
+func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIDataV2, Page, any, error) {
 	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(groupsUrl)
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	var res *GroupsAPIDataV2
-	page, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return &GroupsAPIDataV2{}, page, err
+		return &GroupsAPIDataV2{}, page, statusCode, err
 	}
 
-	return res, page, nil
+	return res, page, statusCode, nil
 }
 
 func (f *FreshServiceClient) getAPIData(ctx context.Context,
@@ -192,7 +192,7 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 	limitPerPage string,
 	uri *url.URL,
 	res any,
-) (Page, error) {
+) (Page, any, error) {
 	var (
 		header       http.Header
 		err          error
@@ -208,21 +208,21 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 	setRawQuery(uri, sPage, limitPerPage)
 	if header, statusCode, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
 		if statusCode != http.StatusRequestTimeout {
-			return page, nil
+			return page, statusCode, err
 		}
 
-		return page, err
+		return page, statusCode, err
 	}
 
 	if linkUrl, ok := header["Link"]; ok {
 		nextLinkUrl, err := getNextLink(linkUrl)
 		if err != nil {
-			return page, err
+			return page, statusCode, err
 		}
 
 		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
 		if err != nil {
-			return page, err
+			return page, statusCode, err
 		}
 
 		if params.Has("page") {
@@ -238,7 +238,7 @@ func (f *FreshServiceClient) getAPIData(ctx context.Context,
 		}
 	}
 
-	return page, nil
+	return page, statusCode, nil
 }
 
 // setRawQuery. Set query parameters.
@@ -251,49 +251,49 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 	uri.RawQuery = q.Encode()
 }
 
-func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIDataV2, string, error) {
+func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIDataV2, string, any, error) {
 	var nextPageToken string = ""
 	if opts.HasNotValidPageSize() {
 		opts.PerPage = 100
 	}
 
-	roles, page, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	roles, page, statusCode, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return &RolesAPIDataV2{}, "", err
+		return &RolesAPIDataV2{}, "", statusCode, err
 	}
 
 	if page.HasNext() {
 		nextPageToken = *page.NextPage
 	}
 
-	return roles, nextPageToken, nil
+	return roles, nextPageToken, statusCode, nil
 }
 
 // GetRoles. List All Roles.
 // https://api.freshservice.com/v2/#view_all_role
-func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIDataV2, Page, error) {
+func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIDataV2, Page, any, error) {
 	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(rolesUrl)
 	if err != nil {
-		return nil, Page{}, err
+		return nil, Page{}, nil, err
 	}
 
 	var res *RolesAPIDataV2
-	page, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return &RolesAPIDataV2{}, page, err
+		return &RolesAPIDataV2{}, page, statusCode, err
 	}
 
-	return res, page, nil
+	return res, page, statusCode, nil
 }
 
 func getNextLink(linkUrl []string) (*url.URL, error) {
@@ -412,6 +412,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 	if err != nil {
 		if strings.Contains(err.Error(), "request timeout") || resp.StatusCode == http.StatusRequestTimeout {
 			l.Warn("request timeout.",
+				zap.Any("error", err),
 				zap.String("urlAddress", urlAddress.String()),
 			)
 			return http.Header{}, http.StatusRequestTimeout, nil

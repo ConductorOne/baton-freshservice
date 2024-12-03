@@ -41,12 +41,20 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 		return nil, "", nil, err
 	}
 
-	groups, nextPageToken, err := g.client.ListAllGroups(ctx, client.PageOptions{
+	groups, nextPageToken, statusCode, err := g.client.ListAllGroups(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
+		if statusCode == http.StatusRequestTimeout {
+			return rv, "", nil, err
+		}
+
 		return nil, "", nil, err
+	}
+
+	if groups == nil {
+		return rv, "", nil, err
 	}
 
 	err = bag.Next(nextPageToken)

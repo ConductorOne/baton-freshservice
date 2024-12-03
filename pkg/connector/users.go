@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -28,12 +29,20 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	users, nextPageToken, err := u.client.ListAllUsers(ctx, client.PageOptions{
+	users, nextPageToken, statusCode, err := u.client.ListAllUsers(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
+		if statusCode == http.StatusRequestTimeout {
+			return rv, "", nil, err
+		}
+
 		return nil, "", nil, err
+	}
+
+	if users == nil {
+		return rv, "", nil, err
 	}
 
 	err = bag.Next(nextPageToken)
