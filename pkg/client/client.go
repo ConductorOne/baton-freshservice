@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	linkheader "github.com/tomnomnom/linkheader"
 	"go.uber.org/zap"
 )
 
@@ -217,20 +217,17 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 		return page, statusCode, err
 	}
 
-	if linkUrl, ok := header["Link"]; ok {
-		nextLinkUrl, err := getNextLink(linkUrl)
-		if err != nil {
-			return page, statusCode, err
-		}
+	pagingLinks := linkheader.Parse(header.Get("Link"))
+	for _, link := range pagingLinks {
+		if link.Rel == "next" {
+			nextPageUrl, err := url.Parse(link.URL)
+			if err != nil {
+				return page, 0, err
+			}
 
-		params, err := url.ParseQuery(nextLinkUrl.RawQuery)
-		if err != nil {
-			return page, statusCode, err
-		}
-
-		if params.Has("page") {
-			nPage = params.Get("page")
+			nPage = nextPageUrl.Query().Get("page")
 			IsLastPage = false
+			break
 		}
 	}
 
@@ -242,6 +239,13 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 	}
 
 	return page, statusCode, nil
+}
+
+func ConvertPageToken(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	return strconv.Atoi(token)
 }
 
 // setRawQuery. Set query parameters.
@@ -293,15 +297,6 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 	}
 
 	return res, page, statusCode, nil
-}
-
-func getNextLink(linkUrl []string) (*url.URL, error) {
-	urlStr := strings.Join(linkUrl, "")
-	regex := regexp.MustCompile(`[<>;,.!]`)
-	result := regex.ReplaceAllString(urlStr, "")
-	urlStr = strings.ReplaceAll(result, `rel="next"`, "")
-	nextUrl, err := url.Parse(strings.Trim(urlStr, " "))
-	return nextUrl, err
 }
 
 // GetGroupDetail. List All Agents in a Group.
@@ -410,7 +405,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 				}
 			}
 
-			return nil, resp.StatusCode, nil
+			return resp.Header, resp.StatusCode, nil
 		}
 	case http.MethodPut:
 		resp, err = f.httpClient.Do(req)
@@ -425,7 +420,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 				}
 			}
 
-			return nil, resp.StatusCode, nil
+			return resp.Header, resp.StatusCode, nil
 		}
 	}
 
