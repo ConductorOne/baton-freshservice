@@ -36,15 +36,11 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	roles, nextPageToken, statusCode, err := r.client.ListAllRoles(ctx, client.PageOptions{
+	roles, nextPageToken, _, err := r.client.ListAllRoles(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
-		if statusCode == http.StatusRequestTimeout {
-			return rv, "", nil, err
-		}
-
 		return nil, "", nil, err
 	}
 
