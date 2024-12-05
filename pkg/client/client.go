@@ -135,7 +135,7 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	}
 
 	var res *AgentsAPIData
-	page, statusCode, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
@@ -180,7 +180,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 	}
 
 	var res *GroupsAPIData
-	page, statusCode, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
@@ -193,7 +193,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 	return res, page, statusCode, nil
 }
 
-func (f *FreshServiceClient) getAPIData(ctx context.Context,
+func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 	startPage string,
 	limitPerPage string,
 	uri *url.URL,
@@ -285,7 +285,7 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 	}
 
 	var res *RolesAPIData
-	page, statusCode, err := f.getAPIData(ctx,
+	page, statusCode, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
