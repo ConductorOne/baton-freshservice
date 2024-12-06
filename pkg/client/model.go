@@ -58,7 +58,7 @@ type Agents struct {
 }
 
 type AgentDetailAPIData struct {
-	Agent Agents `json:"agent"`
+	Agent Agents `json:"agent,omitempty"`
 }
 
 type AgentRoles struct {
@@ -81,7 +81,7 @@ type Contact struct {
 	Email       string    `json:"email,omitempty"`
 	JobTitle    any       `json:"job_title,omitempty"`
 	Language    string    `json:"language,omitempty"`
-	LastLoginAt any       `json:"last_login_at"`
+	LastLoginAt any       `json:"last_login_at,omitempty"`
 	Mobile      any       `json:"mobile,omitempty"`
 	Name        string    `json:"name,omitempty"`
 	Phone       any       `json:"phone,omitempty"`
@@ -127,8 +127,8 @@ type Roles struct {
 }
 
 type Meta struct {
-	UsedCoPilotCount int `json:"used_co_pilot_count"`
-	CoPilotLicCount  int `json:"co_pilot_lic_count"`
+	UsedCoPilotCount int `json:"used_co_pilot_count,omitempty"`
+	CoPilotLicCount  int `json:"co_pilot_lic_count,omitempty"`
 }
 
 type GroupsAPIData struct {
@@ -158,7 +158,7 @@ type Groups struct {
 }
 
 type GroupDetailAPIData struct {
-	Group Groups `json:"group"`
+	Group Groups `json:"group,omitempty"`
 }
 
 type UpdateAgentRoles struct {
