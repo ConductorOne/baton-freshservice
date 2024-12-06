@@ -104,17 +104,12 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 }
 
 func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, any, error) {
-	var nextPageToken string = ""
 	users, page, statusCode, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", statusCode, err
 	}
 
-	if page.HasNext() {
-		nextPageToken = *page.NextPage
-	}
-
-	return users, nextPageToken, statusCode, nil
+	return users, *page.NextPage, statusCode, nil
 }
 
 // GetUsers. List All Agents(Users).
@@ -145,17 +140,12 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 }
 
 func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, int, error) {
-	var nextPageToken string = ""
 	groups, page, statusCode, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", statusCode, err
 	}
 
-	if page.HasNext() {
-		nextPageToken = *page.NextPage
-	}
-
-	return groups, nextPageToken, statusCode, nil
+	return groups, *page.NextPage, statusCode, nil
 }
 
 // GetGroups. List All Agent Groups(Groups).
@@ -192,9 +182,12 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 	res any,
 ) (Page, int, error) {
 	var (
-		header       http.Header
-		err          error
-		page         Page
+		header http.Header
+		err    error
+		page   = Page{
+			PreviousPage: new(string),
+			NextPage:     new(string),
+		}
 		IsLastPage   = true
 		sPage, nPage = "1", "0"
 		statusCode   int
@@ -259,17 +252,12 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 }
 
 func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, int, error) {
-	var nextPageToken string = ""
 	roles, page, statusCode, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", statusCode, err
 	}
 
-	if page.HasNext() {
-		nextPageToken = *page.NextPage
-	}
-
-	return roles, nextPageToken, statusCode, nil
+	return roles, *page.NextPage, statusCode, nil
 }
 
 // GetRoles. List All Roles.
