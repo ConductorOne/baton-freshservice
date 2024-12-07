@@ -10,15 +10,15 @@ import (
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
-func userResource(ctx context.Context, user *client.Agents, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func userResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
-	// firstName, lastName := splitFullName(user.Contact.Name)
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
-		"login":      user.Email,
+		"login":      user.PrimaryEmail,
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
-		"email":      user.Email,
+		"email":      user.PrimaryEmail,
+		"is_agent":   user.IsAgent,
 	}
 
 	switch user.Active {
@@ -31,13 +31,13 @@ func userResource(ctx context.Context, user *client.Agents, parentResourceID *v2
 	userTraits := []rs.UserTraitOption{
 		rs.WithUserProfile(profile),
 		rs.WithStatus(userStatus),
-		rs.WithUserLogin(user.Email),
-		rs.WithEmail(user.Email, true),
+		rs.WithUserLogin(user.PrimaryEmail),
+		rs.WithEmail(user.PrimaryEmail, true),
 	}
 
 	displayName := user.FirstName + " " + user.LastName
 	if user.FirstName == "" {
-		displayName = user.Email
+		displayName = user.PrimaryEmail
 	}
 
 	ret, err := rs.NewUserResource(
@@ -134,4 +134,22 @@ func handleToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*pagi
 	}
 
 	return bag, pageToken, nil
+}
+
+func isAgent(resource *v2.Resource) (bool, error) {
+	userTrait, err := rs.GetUserTrait(resource)
+	if err != nil {
+		return false, err
+	}
+
+	field, ok := userTrait.Profile.Fields["is_agent"]
+	if !ok {
+		return false, nil
+	}
+
+	if field.GetBoolValue() {
+		return true, err
+	}
+
+	return false, nil
 }

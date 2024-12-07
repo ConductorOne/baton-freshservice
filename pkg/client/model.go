@@ -173,3 +173,39 @@ type BodyRole struct {
 type GroupMembers struct {
 	Members []int64 `json:"members"`
 }
+
+type requestersAPIData struct {
+	Requesters []Requesters `json:"requesters"`
+}
+
+type Requesters struct {
+	Active                                    bool          `json:"active,omitempty"`
+	Address                                   interface{}   `json:"address,omitempty"`
+	BackgroundInformation                     interface{}   `json:"background_information,omitempty"`
+	CanSeeAllChangesFromAssociatedDepartments bool          `json:"can_see_all_changes_from_associated_departments,omitempty"`
+	CanSeeAllTicketsFromAssociatedDepartments bool          `json:"can_see_all_tickets_from_associated_departments,omitempty"`
+	CreatedAt                                 time.Time     `json:"created_at,omitempty"`
+	CustomFields                              struct{}      `json:"custom_fields,omitempty"`
+	DepartmentIDs                             []interface{} `json:"department_ids,omitempty"`
+	DepartmentNames                           interface{}   `json:"department_names,omitempty"`
+	ExternalID                                interface{}   `json:"external_id,omitempty"`
+	FirstName                                 string        `json:"first_name,omitempty"`
+	HasLoggedIn                               bool          `json:"has_logged_in,omitempty"`
+	ID                                        int64         `json:"id,omitempty"`
+	IsAgent                                   bool          `json:"is_agent,omitempty"`
+	JobTitle                                  interface{}   `json:"job_title,omitempty"`
+	Language                                  string        `json:"language,omitempty"`
+	LastName                                  string        `json:"last_name,omitempty"`
+	LocationID                                interface{}   `json:"location_id,omitempty"`
+	LocationName                              interface{}   `json:"location_name,omitempty"`
+	MobilePhoneNumber                         interface{}   `json:"mobile_phone_number,omitempty"`
+	PrimaryEmail                              string        `json:"primary_email,omitempty"`
+	ReportingManagerID                        interface{}   `json:"reporting_manager_id,omitempty"`
+	SecondaryEmails                           []interface{} `json:"secondary_emails,omitempty"`
+	TimeFormat                                string        `json:"time_format,omitempty"`
+	TimeZone                                  string        `json:"time_zone,omitempty"`
+	UpdatedAt                                 time.Time     `json:"updated_at,omitempty"`
+	VipUser                                   bool          `json:"vip_user,omitempty"`
+	WorkPhoneNumber                           interface{}   `json:"work_phone_number,omitempty"`
+	WorkScheduleID                            interface{}   `json:"work_schedule_id,omitempty"`
+}

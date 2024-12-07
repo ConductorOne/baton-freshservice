@@ -46,7 +46,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	for _, user := range users.Agents {
+	for _, user := range users.Requesters {
 		userCopy := user
 		ur, err := userResource(ctx, &userCopy, nil)
 		if err != nil {
@@ -72,12 +72,24 @@ func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	userId := resource.Id.Resource
+	if ok, err := isAgent(resource); !ok {
+		if err != nil {
+			return nil, "", nil, err
+		}
+
+		return nil, "", nil, nil
+	}
+
 	agentDetail, statusCode, err := u.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		if statusCode == http.StatusRequestTimeout {
 			return rv, "", nil, err
 		}
 
+		return nil, "", nil, err
+	}
+
+	if agentDetail == nil {
 		return nil, "", nil, err
 	}
 

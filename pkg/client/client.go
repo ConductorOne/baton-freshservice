@@ -103,7 +103,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, any, error) {
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*requestersAPIData, string, any, error) {
 	users, page, statusCode, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", statusCode, err
@@ -114,8 +114,8 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 
 // GetUsers. List All Agents(Users).
 // https://api.freshservice.com/v2/#list_all_agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIData, Page, int, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, int, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "requesters")
 	if err != nil {
 		return nil, Page{}, 0, err
 	}
@@ -125,7 +125,11 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 		return nil, Page{}, 0, err
 	}
 
-	var res *AgentsAPIData
+	q := uri.Query()
+	q.Set("include_agents", "true")
+	uri.RawQuery = q.Encode()
+
+	var res *requestersAPIData
 	page, statusCode, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
