@@ -113,7 +113,7 @@ func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.
 	return resource, nil
 }
 
-func handleToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*pagination.Bag, int, error) {
+func getToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*pagination.Bag, int, error) {
 	var pageToken int
 	_, bag, err := unmarshalSkipToken(pToken)
 	if err != nil {

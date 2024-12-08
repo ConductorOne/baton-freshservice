@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
@@ -20,10 +19,7 @@ type roleBuilder struct {
 	client       *client.FreshServiceClient
 }
 
-const (
-	assignedEntitlement = "assigned"
-	NF                  = -1
-)
+const assignedEntitlement = "assigned"
 
 func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return resourceTypeRole
@@ -31,21 +27,17 @@ func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := handleToken(pToken, resourceTypeRole)
+	bag, pageToken, err := getToken(pToken, resourceTypeRole)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	roles, nextPageToken, _, err := r.client.ListAllRoles(ctx, client.PageOptions{
+	roles, nextPageToken, annotation, err := r.client.ListAllRoles(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
 		return nil, "", nil, err
-	}
-
-	if roles == nil {
-		return rv, "", nil, err
 	}
 
 	err = bag.Next(nextPageToken)
@@ -67,7 +59,7 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	return rv, nextPageToken, nil, nil
+	return rv, nextPageToken, annotation, nil
 }
 
 func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
@@ -87,7 +79,6 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 }
 
 func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
-	var statusCode any
 	l := ctxzap.Extract(ctx)
 	if principal.Id.ResourceType != userResourceType.Id {
 		l.Warn(
@@ -100,13 +91,9 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	roleId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	roles, _, err := r.client.GetAgentDetail(ctx, userId)
+	roles, annotation, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
-	}
-
-	if roles.Agent.Roles == nil {
-		return nil, nil
 	}
 
 	roleId64, err := strconv.ParseInt(roleId, 10, 64)
@@ -128,19 +115,12 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		AssignmentScope: "assigned_items",
 	})
 
-	statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	if http.StatusOK == statusCode {
-		l.Warn("Membership has been created.",
-			zap.String("userId", userId),
-			zap.String("roleId", roleId),
-		)
-	}
-
-	return nil, nil
+	return annotation, nil
 }
 
 func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
@@ -158,13 +138,9 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
-	roles, _, err := r.client.GetAgentDetail(ctx, userId)
+	roles, annotation, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
-	}
-
-	if roles.Agent.Roles == nil {
-		return nil, nil
 	}
 
 	roleId64, err := strconv.ParseInt(roleId, 10, 64)
@@ -184,20 +160,12 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		})
 	}
 
-	var statusCode any
-	statusCode, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	if http.StatusOK == statusCode {
-		l.Warn("Membership has been revoked.",
-			zap.String("userId", userId),
-			zap.String("roleId", roleId),
-		)
-	}
-
-	return nil, nil
+	return annotation, nil
 }
 
 func newRoleBuilder(c *client.FreshServiceClient) *roleBuilder {

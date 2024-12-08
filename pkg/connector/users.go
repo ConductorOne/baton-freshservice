@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -24,21 +23,17 @@ func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := handleToken(pToken, userResourceType)
+	bag, pageToken, err := getToken(pToken, userResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	users, nextPageToken, _, err := u.client.ListAllUsers(ctx, client.PageOptions{
+	users, nextPageToken, annotation, err := u.client.ListAllUsers(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
 		return nil, "", nil, err
-	}
-
-	if users == nil {
-		return rv, "", nil, err
 	}
 
 	err = bag.Next(nextPageToken)
@@ -60,7 +55,7 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	return rv, nextPageToken, nil, nil
+	return rv, nextPageToken, annotation, nil
 }
 
 // Entitlements always returns an empty slice for users.
@@ -80,16 +75,8 @@ func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		return nil, "", nil, nil
 	}
 
-	agentDetail, statusCode, err := u.client.GetAgentDetail(ctx, userId)
+	agentDetail, annotation, err := u.client.GetAgentDetail(ctx, userId)
 	if err != nil {
-		if statusCode == http.StatusRequestTimeout {
-			return rv, "", nil, err
-		}
-
-		return nil, "", nil, err
-	}
-
-	if agentDetail == nil {
 		return nil, "", nil, err
 	}
 
@@ -109,7 +96,7 @@ func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		rv = append(rv, grant)
 	}
 
-	return rv, "", nil, nil
+	return rv, "", annotation, nil
 }
 
 func newUserBuilder(c *client.FreshServiceClient) *userBuilder {

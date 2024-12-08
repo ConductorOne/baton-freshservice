@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"strconv"
 
@@ -32,21 +31,17 @@ func (g *groupBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // Groups include a GroupTrait because they are the 'shape' of a standard group.
 func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := handleToken(pToken, groupResourceType)
+	bag, pageToken, err := getToken(pToken, groupResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	groups, nextPageToken, _, err := g.client.ListAllGroups(ctx, client.PageOptions{
+	groups, nextPageToken, annotation, err := g.client.ListAllGroups(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
 	if err != nil {
 		return nil, "", nil, err
-	}
-
-	if groups == nil {
-		return rv, "", nil, err
 	}
 
 	err = bag.Next(nextPageToken)
@@ -68,7 +63,7 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 		return nil, "", nil, err
 	}
 
-	return rv, nextPageToken, nil, nil
+	return rv, nextPageToken, annotation, nil
 }
 
 func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
@@ -88,16 +83,12 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 		rv []*v2.Grant
 		gr *v2.Grant
 	)
-	data, statusCode, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
+	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
 	if err != nil {
-		if statusCode == http.StatusRequestTimeout {
-			return rv, "", nil, err
-		}
-
 		return nil, "", nil, err
 	}
 
-	for _, agent := range data.Group.Members {
+	for _, agent := range groupDetail.Group.Members {
 		userId := &v2.ResourceId{
 			ResourceType: userResourceType.Id,
 			Resource:     fmt.Sprintf("%d", agent),
@@ -106,11 +97,10 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 		rv = append(rv, gr)
 	}
 
-	return rv, "", nil, nil
+	return rv, "", annotation, nil
 }
 
 func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
-	var statusCode any
 	l := ctxzap.Extract(ctx)
 	if principal.Id.ResourceType != userResourceType.Id {
 		l.Warn(
@@ -123,13 +113,9 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 
 	groupId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	groupDetail, _, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
-	}
-
-	if groupDetail.Group.Members == nil {
-		return nil, nil
 	}
 
 	user, err := strconv.ParseInt(userId, 10, 64)
@@ -138,23 +124,15 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	statusCode, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
+	_, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
 	if err != nil {
 		return nil, err
 	}
 
-	if http.StatusOK == statusCode {
-		l.Warn("Membership has been created.",
-			zap.String("userId", userId),
-			zap.String("groupId", groupId),
-		)
-	}
-
-	return nil, nil
+	return annotation, nil
 }
 
 func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
-	var statusCode any
 	l := ctxzap.Extract(ctx)
 	principal := grant.Principal
 	entitlement := grant.Entitlement
@@ -170,13 +148,9 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	groupDetail, _, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
-	}
-
-	if groupDetail.Group.Members == nil {
-		return nil, nil
 	}
 
 	user, err := strconv.ParseInt(userId, 10, 64)
@@ -193,7 +167,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	statusCode, err = g.client.UpdateGroupMembers(ctx,
+	_, err = g.client.UpdateGroupMembers(ctx,
 		groupId,
 		members,
 	)
@@ -201,14 +175,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		return nil, err
 	}
 
-	if http.StatusOK == statusCode {
-		l.Warn("Membership has been revoked.",
-			zap.String("userId", userId),
-			zap.String("groupId", groupId),
-		)
-	}
-
-	return nil, nil
+	return annotation, nil
 }
 
 func newGroupBuilder(c *client.FreshServiceClient) *groupBuilder {

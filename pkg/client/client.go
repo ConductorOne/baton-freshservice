@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
+	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	annotations "github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	linkheader "github.com/tomnomnom/linkheader"
-	"go.uber.org/zap"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type FreshServiceClient struct {
@@ -75,11 +76,8 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return nil, err
 	}
 
-	// https://api.freshservice.com/v2/#rate_limit
-	// Rate Limit/Min Ex. List All Agents: 40
 	cli, err := uhttp.NewBaseHttpClientWithContext(context.Background(),
 		httpClient,
-		uhttp.WithRateLimiter(40, time.Minute),
 	)
 	if err != nil {
 		return freshServiceClient, err
@@ -103,26 +101,26 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*requestersAPIData, string, any, error) {
-	users, page, statusCode, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*requestersAPIData, string, annotations.Annotations, error) {
+	users, page, annotation, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", statusCode, err
+		return nil, "", nil, err
 	}
 
-	return users, *page.NextPage, statusCode, nil
+	return users, *page.NextPage, annotation, nil
 }
 
 // GetUsers. List All Agents(Users).
 // https://api.freshservice.com/v2/#list_all_agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, int, error) {
+func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, annotations.Annotations, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "requesters")
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(agentsUrl)
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	q := uri.Query()
@@ -130,53 +128,53 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	uri.RawQuery = q.Encode()
 
 	var res *requestersAPIData
-	page, statusCode, err := f.getListAPIData(ctx,
+	page, annotation, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return nil, page, statusCode, err
+		return nil, page, nil, err
 	}
 
-	return res, page, statusCode, nil
+	return res, page, annotation, nil
 }
 
-func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, int, error) {
-	groups, page, statusCode, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, annotations.Annotations, error) {
+	groups, page, annotations, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", statusCode, err
+		return nil, "", nil, err
 	}
 
-	return groups, *page.NextPage, statusCode, nil
+	return groups, *page.NextPage, annotations, nil
 }
 
 // GetGroups. List All Agent Groups(Groups).
 // https://api.freshservice.com/v2/#view_all_group
-func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, int, error) {
+func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, annotations.Annotations, error) {
 	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(groupsUrl)
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	var res *GroupsAPIData
-	page, statusCode, err := f.getListAPIData(ctx,
+	page, annotation, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return nil, page, statusCode, err
+		return nil, page, nil, err
 	}
 
-	return res, page, statusCode, nil
+	return res, page, annotation, nil
 }
 
 func (f *FreshServiceClient) getListAPIData(ctx context.Context,
@@ -184,7 +182,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 	limitPerPage string,
 	uri *url.URL,
 	res any,
-) (Page, int, error) {
+) (Page, annotations.Annotations, error) {
 	var (
 		header http.Header
 		err    error
@@ -194,7 +192,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 		}
 		IsLastPage   = true
 		sPage, nPage = "1", "0"
-		statusCode   int
+		annotation   annotations.Annotations
 	)
 	if startPage != "0" {
 		sPage = startPage
@@ -202,7 +200,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 
 	limitPage, err := strconv.Atoi(limitPerPage)
 	if err != nil {
-		return page, 0, err
+		return page, nil, err
 	}
 
 	if limitPage < 0 || limitPage > 100 {
@@ -210,8 +208,8 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 	}
 
 	setRawQuery(uri, sPage, limitPerPage)
-	if header, statusCode, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
-		return page, statusCode, err
+	if header, annotation, err = f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil); err != nil {
+		return page, nil, err
 	}
 
 	pagingLinks := linkheader.Parse(header.Get("Link"))
@@ -219,7 +217,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 		if link.Rel == "next" {
 			nextPageUrl, err := url.Parse(link.URL)
 			if err != nil {
-				return page, 0, err
+				return page, nil, err
 			}
 
 			nPage = nextPageUrl.Query().Get("page")
@@ -235,7 +233,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 		}
 	}
 
-	return page, statusCode, nil
+	return page, annotation, nil
 }
 
 func ConvertPageToken(token string) (int, error) {
@@ -255,72 +253,69 @@ func setRawQuery(uri *url.URL, sPage string, limitPerPage string) {
 	uri.RawQuery = q.Encode()
 }
 
-func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, int, error) {
-	roles, page, statusCode, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+func (f *FreshServiceClient) ListAllRoles(ctx context.Context, opts PageOptions) (*RolesAPIData, string, annotations.Annotations, error) {
+	roles, page, annotation, err := f.GetRoles(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
-		return nil, "", statusCode, err
+		return nil, "", nil, err
 	}
 
-	return roles, *page.NextPage, statusCode, nil
+	return roles, *page.NextPage, annotation, nil
 }
 
 // GetRoles. List All Roles.
 // https://api.freshservice.com/v2/#view_all_role
-func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIData, Page, int, error) {
+func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPage string) (*RolesAPIData, Page, annotations.Annotations, error) {
 	rolesUrl, err := url.JoinPath(f.baseUrl, "roles")
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	uri, err := url.Parse(rolesUrl)
 	if err != nil {
-		return nil, Page{}, 0, err
+		return nil, Page{}, nil, err
 	}
 
 	var res *RolesAPIData
-	page, statusCode, err := f.getListAPIData(ctx,
+	page, annotation, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,
 		uri,
 		&res,
 	)
 	if err != nil {
-		return nil, page, statusCode, err
+		return nil, page, nil, err
 	}
 
-	return res, page, statusCode, nil
+	return res, page, annotation, nil
 }
 
 // GetGroupDetail. List All Agents in a Group.
 // https://api.freshservice.com/v2/#view_a_group
-func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, any, error) {
+func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, annotations.Annotations, error) {
 	var (
-		statusCode any
 		err        error
 		res        *GroupDetailAPIData
+		annotation annotations.Annotations
 	)
 	groupUrl, err := url.JoinPath(f.baseUrl, "groups", groupId)
 	if err != nil {
-		return nil, statusCode, err
+		return nil, nil, err
 	}
 
-	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
-		return nil, statusCode, err
+	if _, annotation, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
+		return nil, nil, err
 	}
 
-	if statusCode != http.StatusRequestTimeout {
-		return res, statusCode, nil
-	}
-
-	return nil, statusCode, nil
+	return res, annotation, nil
 }
 
 // UpdateGroupMembers. Update the existing group to add another agent to the group
 // https://api.freshservice.com/v2/#update_a_group
-func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId string, usersId []int64) (any, error) {
+func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId string, usersId []int64) (annotations.Annotations, error) {
 	var (
-		body            GroupMembers
-		res, statusCode any
+		body       GroupMembers
+		res        any
+		annotation annotations.Annotations
 	)
 
 	body.Members = usersId
@@ -329,46 +324,47 @@ func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId str
 		return nil, err
 	}
 
-	if _, statusCode, err = f.doRequest(ctx, http.MethodPut, groupUrl, &res, body); err != nil {
-		return statusCode, err
+	if _, annotation, err = f.doRequest(ctx, http.MethodPut, groupUrl, &res, body); err != nil {
+		return nil, err
 	}
 
-	return statusCode, nil
+	return annotation, nil
 }
 
 // GetAgentDetail. Get agent detail.
 // https://api.freshservice.com/v2/#view_an_agent
-func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, any, error) {
+func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) (*AgentDetailAPIData, annotations.Annotations, error) {
 	var (
-		statusCode any
 		err        error
 		res        *AgentDetailAPIData
+		annotation annotations.Annotations
 	)
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
-		return nil, statusCode, err
+		return nil, nil, err
 	}
 
-	if _, statusCode, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
-		return nil, statusCode, err
+	if _, annotation, err = f.doRequest(ctx, http.MethodGet, agentsUrl, &res, nil); err != nil {
+		return nil, nil, err
 	}
 
-	if statusCode != http.StatusRequestTimeout {
-		return res, statusCode, nil
-	}
-
-	return nil, statusCode, nil
+	return res, annotation, nil
 }
 
-func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl string, res interface{}, body interface{}) (http.Header, int, error) {
+func (f *FreshServiceClient) doRequest(ctx context.Context,
+	method,
+	endpointUrl string,
+	res interface{},
+	body interface{},
+) (http.Header, annotations.Annotations, error) {
 	var (
-		resp *http.Response
-		err  error
+		resp   *http.Response
+		err    error
+		header = http.Header{}
 	)
-	l := ctxzap.Extract(ctx)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	req, err := f.httpClient.NewRequest(ctx,
@@ -380,7 +376,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		uhttp.WithJSONBody(body),
 	)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	switch method {
@@ -388,54 +384,93 @@ func (f *FreshServiceClient) doRequest(ctx context.Context, method, endpointUrl 
 		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
 		if resp != nil {
 			defer resp.Body.Close()
-			if err != nil {
-				if strings.Contains(err.Error(), "404") || resp.StatusCode == http.StatusRequestTimeout {
-					l.Warn(err.Error(),
-						zap.Any("error", err),
-						zap.String("urlAddress", urlAddress.String()),
-					)
-				}
-			}
-
-			return resp.Header, resp.StatusCode, nil
 		}
 	case http.MethodPut:
 		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
-			if err != nil {
-				if strings.Contains(err.Error(), "request timeout") || resp.StatusCode == http.StatusRequestTimeout {
-					l.Warn(err.Error(),
-						zap.Any("error", err),
-						zap.String("urlAddress", urlAddress.String()),
-					)
-				}
-			}
-
-			return resp.Header, resp.StatusCode, nil
 		}
 	}
 
-	return resp.Header, resp.StatusCode, nil
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rateLimitData, err := extractRateLimitData(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	annotation := annotations.Annotations{}
+	annotation.WithRateLimiting(rateLimitData)
+
+	return header, annotation, nil
 }
 
 // UpdateAgentRoles. Update an Agent.
 // https://api.freshservice.com/v2/#update_an_agent
-func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []BodyRole, userId string) (any, error) {
+func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []BodyRole, userId string) error {
 	var (
-		body            UpdateAgentRoles
-		res, statusCode any
+		body UpdateAgentRoles
+		res  any
 	)
 
 	body.Roles = roleIDs
 	agentsUrl, err := url.JoinPath(f.baseUrl, "agents", userId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if _, statusCode, err = f.doRequest(ctx, http.MethodPut, agentsUrl, &res, body); err != nil {
-		return statusCode, err
+	if _, _, err = f.doRequest(ctx, http.MethodPut, agentsUrl, &res, body); err != nil {
+		return err
 	}
 
-	return statusCode, nil
+	return nil
+}
+
+// extractRateLimitData returns a set of annotations for rate limiting given the rate limit headers provided by FreshService.
+// https://api.freshservice.com/v2/#rate_limit
+func extractRateLimitData(response *http.Response) (*v2.RateLimitDescription, error) {
+	var (
+		err       error
+		remaining int64
+	)
+	if response == nil {
+		return nil, fmt.Errorf("freshservice-connector: passed nil response")
+	}
+
+	remainingPayload := response.Header.Get("X-RateLimit-Remaining")
+	if remainingPayload != "" {
+		remaining, err = strconv.ParseInt(remainingPayload, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ratelimit-remaining: %w", err)
+		}
+	}
+
+	var maxCalls int64
+	maxPayload := response.Header.Get("X-RateLimit-Total")
+	if maxPayload != "" {
+		maxCalls, err = strconv.ParseInt(maxPayload, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ratelimit-total: %w", err)
+		}
+	}
+
+	var resetAt *timestamppb.Timestamp
+	intervalMsPayload := response.Header.Get("Retry-After")
+	if intervalMsPayload != "" {
+		intervalMs, err := strconv.ParseInt(intervalMsPayload, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse retry-after: %w", err)
+		}
+
+		resetAtSeconds := time.Now().Add(time.Duration(intervalMs) * time.Millisecond).Unix()
+		resetAt = &timestamppb.Timestamp{Seconds: resetAtSeconds}
+	}
+
+	return &v2.RateLimitDescription{
+		Limit:     maxCalls,
+		Remaining: remaining,
+		ResetAt:   resetAt,
+	}, nil
 }
