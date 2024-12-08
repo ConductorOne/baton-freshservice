@@ -95,6 +95,28 @@ func TestRolesBuilderList(t *testing.T) {
 	}
 }
 
+func TestRequesterGroupBuilderList(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	rg := &requesterGroupBuilder{
+		resourceType: resourceTypeRequesterGroup,
+		client:       cliTest,
+	}
+	var token = "{}"
+	for token != "" {
+		_, tk, _, err := rg.List(ctxTest, &v2.ResourceId{}, &pagination.Token{
+			Token: token,
+		})
+		require.Nil(t, err)
+		token = tk
+	}
+}
+
 func TestRoleGrants(t *testing.T) {
 	if apiKey == "" && domain == "" {
 		t.Skip()
@@ -175,6 +197,24 @@ func TestGroupGrants(t *testing.T) {
 	}
 	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000063690"},
+	}, &pagination.Token{})
+	require.Nil(t, err)
+}
+
+func TestRequesterGroupGrants(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	rg := &requesterGroupBuilder{
+		resourceType: resourceTypeRequesterGroup,
+		client:       cliTest,
+	}
+	_, _, _, err = rg.Grants(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000015150"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -319,7 +359,7 @@ func TestUserGrants(t *testing.T) {
 	require.Nil(t, err)
 
 	u := &userBuilder{
-		resourceType: groupResourceType,
+		resourceType: userResourceType,
 		client:       cliTest,
 	}
 	_, _, _, err = u.Grants(ctxTest, &v2.Resource{

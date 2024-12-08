@@ -209,3 +209,25 @@ type Requesters struct {
 	WorkPhoneNumber                           interface{}   `json:"work_phone_number,omitempty"`
 	WorkScheduleID                            interface{}   `json:"work_schedule_id,omitempty"`
 }
+
+type RequesterGroupsAPIData struct {
+	RequesterGroups []RequesterGroup `json:"requester_groups,omitempty"`
+}
+
+type RequesterGroup struct {
+	ID          int64  `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Type        string `json:"type,omitempty"`
+}
+
+type requesterAPIData struct {
+	Requesters []Requester `json:"requesters,omitempty"`
+}
+
+type Requester struct {
+	ID        int    `json:"id,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Email     string `json:"email,omitempty"`
+}

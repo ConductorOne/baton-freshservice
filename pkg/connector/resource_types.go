@@ -31,4 +31,10 @@ var (
 		Description: "Roles of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
 	}
+	resourceTypeRequesterGroup = &v2.ResourceType{
+		Id:          "requester_group",
+		DisplayName: "Requester Group",
+		Description: "Requester Group of FreshService",
+		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
+	}
 )

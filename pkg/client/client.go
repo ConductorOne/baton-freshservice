@@ -474,3 +474,59 @@ func extractRateLimitData(response *http.Response) (*v2.RateLimitDescription, er
 		ResetAt:   resetAt,
 	}, nil
 }
+
+func (f *FreshServiceClient) ListAllRequesterGroups(ctx context.Context, opts PageOptions) (*RequesterGroupsAPIData, string, annotations.Annotations, error) {
+	requesterGroups, page, annotation, err := f.GetRequesterGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return requesterGroups, *page.NextPage, annotation, nil
+}
+
+// GetRequesterGroups. List All Requester Groups.
+// https://api.freshservice.com/v2/#view_all_requester_group
+func (f *FreshServiceClient) GetRequesterGroups(ctx context.Context, startPage, limitPerPage string) (*RequesterGroupsAPIData, Page, annotations.Annotations, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "requester_groups")
+	if err != nil {
+		return nil, Page{}, nil, err
+	}
+
+	uri, err := url.Parse(agentsUrl)
+	if err != nil {
+		return nil, Page{}, nil, err
+	}
+
+	var res *RequesterGroupsAPIData
+	page, annotation, err := f.getListAPIData(ctx,
+		startPage,
+		limitPerPage,
+		uri,
+		&res,
+	)
+	if err != nil {
+		return nil, page, nil, err
+	}
+
+	return res, page, annotation, nil
+}
+
+// GetRequesterGroupMembers. List Requester Group Members.
+// https://api.freshservice.com/v2/#list_members_of_requester_group
+func (f *FreshServiceClient) GetRequesterGroupMembers(ctx context.Context, requesterGroupId string) (*requesterAPIData, annotations.Annotations, error) {
+	var (
+		err        error
+		res        *requesterAPIData
+		annotation annotations.Annotations
+	)
+	groupUrl, err := url.JoinPath(f.baseUrl, "requester_groups", requesterGroupId, "members")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if _, annotation, err = f.doRequest(ctx, http.MethodGet, groupUrl, &res, nil); err != nil {
+		return nil, nil, err
+	}
+
+	return res, annotation, nil
+}

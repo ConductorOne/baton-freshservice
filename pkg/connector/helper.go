@@ -153,3 +153,24 @@ func isAgent(resource *v2.Resource) (bool, error) {
 
 	return false, nil
 }
+
+func requesterGroupResource(ctx context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]interface{}{
+		"requester_group_id":   requesterGroup.ID,
+		"requester_group_name": requesterGroup.Name,
+		"requester_group_type": requesterGroup.Type,
+	}
+	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
+	resource, err := rs.NewGroupResource(
+		requesterGroup.Name,
+		resourceTypeRequesterGroup,
+		requesterGroup.ID,
+		groupTraitOptions,
+		rs.WithParentResourceID(parentResourceID),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
+}
