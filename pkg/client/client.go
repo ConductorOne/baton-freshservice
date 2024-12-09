@@ -371,7 +371,11 @@ func (f *FreshServiceClient) doRequest(
 
 	switch method {
 	case http.MethodGet, http.MethodPut, http.MethodPost:
-		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
+		doOptions := []uhttp.DoOption{}
+		if res != nil {
+			doOptions = append(doOptions, uhttp.WithResponse(&res))
+		}
+		resp, err = f.httpClient.Do(req, doOptions...)
 		if resp != nil {
 			defer resp.Body.Close()
 		}
@@ -528,20 +532,14 @@ func (f *FreshServiceClient) AddRequesterToRequesterGroup(
 	requesterGroupId string,
 	requesterId string,
 ) (annotations.Annotations, error) {
-	var (
-		res        any
-		annotation annotations.Annotations
-	)
-
 	groupUrl, err := url.JoinPath(f.baseUrl, "requester_groups", requesterGroupId, "members", requesterId)
 	if err != nil {
 		return nil, err
 	}
-
-	if _, annotation, err = f.doRequest(ctx, http.MethodPost, groupUrl, &res, nil); err != nil {
+	_, annotation, err := f.doRequest(ctx, http.MethodPost, groupUrl, nil, nil);
+	if err != nil {
 		return nil, err
 	}
-
 	return annotation, nil
 }
 
