@@ -93,8 +93,8 @@ jobs:
           BATON_FRESHSERVICE: ./baton-freshservice
           BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
           BATON_DOMAIN: 'conductoronehelpdesk'
-          BATON_GRANT: 'role:33000015201:member:user:33000161840'
-          BATON_ENTITLEMENT: 'role:33000015201:member'
+          BATON_GRANT: 'requester_group:33000015201:member:user:33000161840'
+          BATON_ENTITLEMENT: 'requester_group:33000015201:member'
           BATON_PRINCIPAL_TYPE: 'user'
           BATON_PRINCIPAL: '33000161840'
         run: ./test/grant-revoke.sh
