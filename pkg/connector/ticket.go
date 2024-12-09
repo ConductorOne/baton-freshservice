@@ -23,7 +23,7 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 
 	page, err := ConvertPageToken(pt.Token)
 	if err != nil {
-		return nil, "", nil, nil
+		return nil, "", nil, err
 	}
 
 	serviceCatalogItems, annos, nextPage, err := c.client.ListServiceCatalogItems(ctx, client.PageOptions{
@@ -31,12 +31,12 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 		Page:    page,
 	})
 	if err != nil {
-		return nil, "", nil, nil
+		return nil, "", nil, err
 	}
 
 	ticketStatuses, err := c.client.GetTicketStatuses(ctx)
 	if err != nil {
-		return nil, "", nil, nil
+		return nil, "", nil, err
 	}
 
 	for _, serviceCatalogItem := range serviceCatalogItems.ServiceItems {
@@ -46,7 +46,7 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 		}
 		ticketSchema, err := c.schemaForServiceCatalogItem(ctx, fmt.Sprintf("%d", serviceCatalogItem.DisplayID), ticketStatuses)
 		if err != nil {
-			return nil, "", nil, nil
+			return nil, "", nil, err
 		}
 		ticketSchema.Statuses = ticketStatuses
 		ret = append(ret, ticketSchema)
@@ -58,7 +58,7 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 func (c *Connector) GetTicket(ctx context.Context, ticketId string) (*v2.Ticket, annotations.Annotations, error) {
 	ticket, err := c.client.GetTicket(ctx, ticketId)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, err
 	}
 
 	domain := c.client.GetDomain()
@@ -179,7 +179,7 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 func (c *Connector) GetTicketSchema(ctx context.Context, schemaID string) (*v2.TicketSchema, annotations.Annotations, error) {
 	ticketStatuses, err := c.client.GetTicketStatuses(ctx)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, err
 	}
 	ticketSchema, err := c.schemaForServiceCatalogItem(ctx, schemaID, ticketStatuses)
 	if err != nil {

@@ -114,7 +114,7 @@ type Requester struct {
 	Email     string `json:"email,omitempty"`
 }
 
-// Ticket models
+// Ticket models.
 type TicketUpdatePayload struct {
 	Description string   `json:"description,omitempty"`
 	Subject     string   `json:"subject,omitempty"`
