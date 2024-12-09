@@ -25,7 +25,8 @@
         "description":  "Requester Group of FreshService"
       },
       "capabilities":  [
-        "CAPABILITY_SYNC"
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
       ]
     },
     {
@@ -57,7 +58,7 @@
     }
   ],
   "connectorCapabilities":  [
-    "CAPABILITY_PROVISION",
-    "CAPABILITY_SYNC"
+    "CAPABILITY_SYNC",
+    "CAPABILITY_PROVISION"
   ]
 }
