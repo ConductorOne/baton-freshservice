@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	apiKey  = os.Getenv("BATON_API_KEY")
-	domain  = os.Getenv("BATON_DOMAIN")
-	ctxTest = context.Background()
+	apiKey                  = os.Getenv("BATON_API_KEY")
+	domain                  = os.Getenv("BATON_DOMAIN")
+	ctxTest                 = context.Background()
+	principalTypeForTesting = "user"
 )
 
 func getClientForTesting(ctx context.Context) (*client.FreshServiceClient, error) {
@@ -229,7 +230,7 @@ func TestGroupGrant(t *testing.T) {
 	require.Nil(t, err)
 
 	grantEntitlement := "group:33000063690:member"
-	grantPrincipalType := "user"
+	grantPrincipalType := principalTypeForTesting
 	grantPrincipal := "33000161832"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
@@ -288,7 +289,7 @@ func TestRoleGrant(t *testing.T) {
 	require.Nil(t, err)
 
 	grantEntitlement := "role:33000064223:assigned"
-	grantPrincipalType := "user"
+	grantPrincipalType := principalTypeForTesting
 	grantPrincipal := "33000161901"
 	_, data, err := parseEntitlementID(grantEntitlement)
 	require.Nil(t, err)
@@ -365,5 +366,64 @@ func TestUserGrants(t *testing.T) {
 	_, _, _, err = u.Grants(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000161861"},
 	}, &pagination.Token{})
+	require.Nil(t, err)
+}
+
+func TestRequesterGroupGrant(t *testing.T) {
+	var roleEntitlement string
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	grantEntitlement := "requester_group:33000015201:member"
+	grantPrincipalType := principalTypeForTesting
+	grantPrincipal := "33000161840"
+	_, data, err := parseEntitlementID(grantEntitlement)
+	require.Nil(t, err)
+	require.NotNil(t, data)
+
+	roleEntitlement = data[2]
+	resource, err := getGroupForTesting(ctxTest, data[1], "HR Team", "test")
+	require.Nil(t, err)
+
+	entitlement := getEntitlementForTesting(resource, grantPrincipalType, roleEntitlement)
+	rg := &requesterGroupBuilder{
+		resourceType: resourceTypeRequesterGroup,
+		client:       cliTest,
+	}
+	_, err = rg.Grant(ctxTest, &v2.Resource{
+		Id: &v2.ResourceId{
+			ResourceType: userResourceType.Id,
+			Resource:     grantPrincipal,
+		},
+	}, entitlement)
+	require.Nil(t, err)
+}
+
+func TestRequesterGroupRevoke(t *testing.T) {
+	if apiKey == "" && domain == "" {
+		t.Skip()
+	}
+
+	cliTest, err := getClientForTesting(ctxTest)
+	require.Nil(t, err)
+
+	grantId := "requester_group:33000015201:member:user:33000161840"
+	data := strings.Split(grantId, ":")
+	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	resource, err := getGroupForTesting(ctxTest, data[1], "HR Team", "test")
+	require.Nil(t, err)
+
+	gr := grant.NewGrant(resource, "member", principalID)
+	require.NotNil(t, gr)
+
+	rg := &requesterGroupBuilder{
+		resourceType: resourceTypeRequesterGroup,
+		client:       cliTest,
+	}
+	_, err = rg.Revoke(ctxTest, gr)
 	require.Nil(t, err)
 }

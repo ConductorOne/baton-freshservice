@@ -372,7 +372,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context,
 		if resp != nil {
 			defer resp.Body.Close()
 		}
-	case http.MethodPut:
+	case http.MethodPut, http.MethodPost, http.MethodDelete:
 		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
@@ -516,4 +516,50 @@ func (f *FreshServiceClient) GetRequesterGroupMembers(ctx context.Context, reque
 	}
 
 	return res, annotation, nil
+}
+
+// AddRequesterToRequesterGroup. Add Requester to Requester Group.
+// https://api.freshservice.com/v2/#add_member_to_requester_group
+func (f *FreshServiceClient) AddRequesterToRequesterGroup(ctx context.Context,
+	requesterGroupId string,
+	requesterId string,
+) (annotations.Annotations, error) {
+	var (
+		res        any
+		annotation annotations.Annotations
+	)
+
+	groupUrl, err := url.JoinPath(f.baseUrl, "requester_groups", requesterGroupId, "members", requesterId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, annotation, err = f.doRequest(ctx, http.MethodPost, groupUrl, &res, nil); err != nil {
+		return nil, err
+	}
+
+	return annotation, nil
+}
+
+// DeleteRequesterFromRequesterGroup. Delete Requester from Requester Group.
+// https://api.freshservice.com/v2/#delete_member_from_requester_group
+func (f *FreshServiceClient) DeleteRequesterFromRequesterGroup(ctx context.Context,
+	requesterGroupId string,
+	requesterId string,
+) (annotations.Annotations, error) {
+	var (
+		res        any
+		annotation annotations.Annotations
+	)
+
+	groupUrl, err := url.JoinPath(f.baseUrl, "requester_groups", requesterGroupId, "members", requesterId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, annotation, err = f.doRequest(ctx, http.MethodDelete, groupUrl, &res, nil); err != nil {
+		return nil, err
+	}
+
+	return annotation, nil
 }

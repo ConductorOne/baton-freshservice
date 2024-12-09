@@ -10,6 +10,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type requesterGroupBuilder struct {
@@ -90,6 +92,54 @@ func (rg *requesterGroupBuilder) Grants(ctx context.Context, resource *v2.Resour
 	}
 
 	return rv, "", annotation, nil
+}
+
+func (rg *requesterGroupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"freshservice-connector: only requesters can be granted requester group membership",
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("principal_id", principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("freshservice-connector: only requesters can be granted requester group membership")
+	}
+
+	requesterGroupId := entitlement.Resource.Id.Resource
+	requesterId := principal.Id.Resource
+	annotation, err := rg.client.AddRequesterToRequesterGroup(ctx, requesterGroupId, requesterId)
+	if err != nil {
+		return nil, err
+	}
+
+	return annotation, nil
+}
+
+func (rg *requesterGroupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+	principal := grant.Principal
+	entitlement := grant.Entitlement
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"freshservice-connector: only requesters can have requester group membership revoked",
+			zap.String("principal_id", principal.Id.String()),
+			zap.String("principal_type", principal.Id.ResourceType),
+		)
+
+		return nil, fmt.Errorf("freshservice-connector: only requesters can have requester group membership revoked")
+	}
+
+	requesterId := principal.Id.Resource
+	requesterGroupId := entitlement.Resource.Id.Resource
+	annotation, err := rg.client.DeleteRequesterFromRequesterGroup(ctx,
+		requesterGroupId,
+		requesterId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return annotation, nil
 }
 
 func newRequesterGroupBuilder(c *client.FreshServiceClient) *requesterGroupBuilder {
