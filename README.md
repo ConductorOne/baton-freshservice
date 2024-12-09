@@ -67,6 +67,7 @@ baton-freshservice --api-key Xswedcvfrtgbyhnmju --domain conductorone
 - Users
 - Groups
 - Roles
+- Requester Groups
 
 # Contributing, Support and Issues
 
