@@ -23,15 +23,9 @@ type AgentDetailAPIData struct {
 }
 
 type AgentRoles struct {
-	RoleID          int64         `json:"role_id,omitempty"`
-	AssignmentScope string        `json:"assignment_scope,omitempty"`
-	Groups          []interface{} `json:"groups,omitempty"`
-}
-
-type AgentWorkspaceInfo struct {
-	WorkspaceID       int         `json:"workspace_id,omitempty"`
-	ScoreboardLevelID interface{} `json:"scoreboard_level_id,omitempty"`
-	Points            interface{} `json:"points,omitempty"`
+	RoleID          int64    `json:"role_id,omitempty"`
+	AssignmentScope string   `json:"assignment_scope,omitempty"`
+	Groups          []string `json:"groups,omitempty"`
 }
 
 type Group struct {
