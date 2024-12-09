@@ -1,20 +1,64 @@
 {
-  "@type": "type.googleapis.com/c1.connector.v2.ConnectorCapabilities",
-  "resourceTypeCapabilities": [
+  "@type":  "type.googleapis.com/c1.connector.v2.ConnectorCapabilities",
+  "resourceTypeCapabilities":  [
     {
-      "resourceType": {
-        "id": "user",
-        "displayName": "User",
-        "traits": [
-          "TRAIT_USER"
-        ]
+      "resourceType":  {
+        "id":  "group",
+        "displayName":  "Group",
+        "traits":  [
+          "TRAIT_GROUP"
+        ],
+        "description":  "Groups of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
+      ]
+    },
+    {
+      "resourceType":  {
+        "id":  "requester_group",
+        "displayName":  "Requester Group",
+        "traits":  [
+          "TRAIT_GROUP"
+        ],
+        "description":  "Requester Group of FreshService"
+      },
+      "capabilities":  [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
+      ]
+    },
+    {
+      "resourceType":  {
+        "id":  "role",
+        "displayName":  "Role",
+        "traits":  [
+          "TRAIT_ROLE"
+        ],
+        "description":  "Roles of FreshService"
+      },
+      "capabilities":  [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
+      ]
+    },
+    {
+      "resourceType":  {
+        "id":  "user",
+        "displayName":  "User",
+        "traits":  [
+          "TRAIT_USER"
+        ],
+        "description":  "Users of FreshService"
+      },
+      "capabilities":  [
         "CAPABILITY_SYNC"
       ]
     }
   ],
-  "connectorCapabilities": [
-    "CAPABILITY_SYNC"
+  "connectorCapabilities":  [
+    "CAPABILITY_SYNC",
+    "CAPABILITY_PROVISION"
   ]
 }
