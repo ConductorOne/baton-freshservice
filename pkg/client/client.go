@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -593,7 +592,7 @@ func (f *FreshServiceClient) GetTicket(ctx context.Context, ticketId string) (*T
 	}
 
 	v := url.Values{}
-	v.Set("include", strings.Join([]string{"requester", "requested_for", "tags"}, ","))
+	v.Set("include", "tags")
 
 	uri.RawQuery = v.Encode()
 	var res *TicketResponse
