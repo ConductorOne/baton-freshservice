@@ -536,7 +536,7 @@ func (f *FreshServiceClient) AddRequesterToRequesterGroup(
 	if err != nil {
 		return nil, err
 	}
-	_, annotation, err := f.doRequest(ctx, http.MethodPost, groupUrl, nil, nil);
+	_, annotation, err := f.doRequest(ctx, http.MethodPost, groupUrl, nil, nil)
 	if err != nil {
 		return nil, err
 	}
