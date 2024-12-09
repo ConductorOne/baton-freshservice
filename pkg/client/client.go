@@ -190,7 +190,6 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 			PreviousPage: new(string),
 			NextPage:     new(string),
 		}
-		IsLastPage   = true
 		sPage, nPage = "1", "0"
 		annotation   annotations.Annotations
 	)
@@ -221,26 +220,15 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 			}
 
 			nPage = nextPageUrl.Query().Get("page")
-			IsLastPage = false
+			page = Page{
+				PreviousPage: &sPage,
+				NextPage:     &nPage,
+			}
 			break
 		}
 	}
 
-	if !IsLastPage {
-		page = Page{
-			PreviousPage: &sPage,
-			NextPage:     &nPage,
-		}
-	}
-
 	return page, annotation, nil
-}
-
-func ConvertPageToken(token string) (int, error) {
-	if token == "" {
-		return 0, nil
-	}
-	return strconv.Atoi(token)
 }
 
 // setRawQuery. Set query parameters.
@@ -358,9 +346,8 @@ func (f *FreshServiceClient) doRequest(ctx context.Context,
 	body interface{},
 ) (http.Header, annotations.Annotations, error) {
 	var (
-		resp   *http.Response
-		err    error
-		header = http.Header{}
+		resp *http.Response
+		err  error
 	)
 	urlAddress, err := url.Parse(endpointUrl)
 	if err != nil {
@@ -404,7 +391,7 @@ func (f *FreshServiceClient) doRequest(ctx context.Context,
 	annotation := annotations.Annotations{}
 	annotation.WithRateLimiting(rateLimitData)
 
-	return header, annotation, nil
+	return resp.Header, annotation, nil
 }
 
 // UpdateAgentRoles. Update an Agent.
