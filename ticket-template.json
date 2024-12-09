@@ -1,0 +1,7 @@
+{
+  "schema_id": "18",
+  "display_name": "A test ticket",
+  "description": "A test description",
+  "labels": ["baton"],
+  "custom_fields":{"custom_checkbox":true,"dropdown_custom":"First dropdown choice","user_dropdown":"33000161832"}
+}

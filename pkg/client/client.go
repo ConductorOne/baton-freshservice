@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -48,7 +50,7 @@ func (f *FreshServiceClient) getToken() string {
 	return f.auth.bearerToken
 }
 
-func (f *FreshServiceClient) getDomain() string {
+func (f *FreshServiceClient) GetDomain() string {
 	return f.domain
 }
 
@@ -69,7 +71,7 @@ func isValidUrl(baseUrl string) bool {
 func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshServiceClient, error) {
 	var (
 		clientToken = freshServiceClient.getToken()
-		domain      = freshServiceClient.getDomain()
+		domain      = freshServiceClient.GetDomain()
 	)
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
@@ -177,7 +179,8 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 	return res, page, annotation, nil
 }
 
-func (f *FreshServiceClient) getListAPIData(ctx context.Context,
+func (f *FreshServiceClient) getListAPIData(
+	ctx context.Context,
 	startPage string,
 	limitPerPage string,
 	uri *url.URL,
@@ -339,7 +342,8 @@ func (f *FreshServiceClient) GetAgentDetail(ctx context.Context, userId string) 
 	return res, annotation, nil
 }
 
-func (f *FreshServiceClient) doRequest(ctx context.Context,
+func (f *FreshServiceClient) doRequest(
+	ctx context.Context,
 	method,
 	endpointUrl string,
 	res interface{},
@@ -367,12 +371,12 @@ func (f *FreshServiceClient) doRequest(ctx context.Context,
 	}
 
 	switch method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPut, http.MethodPost:
 		resp, err = f.httpClient.Do(req, uhttp.WithResponse(&res))
 		if resp != nil {
 			defer resp.Body.Close()
 		}
-	case http.MethodPut, http.MethodPost, http.MethodDelete:
+	case http.MethodDelete:
 		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
@@ -520,7 +524,8 @@ func (f *FreshServiceClient) GetRequesterGroupMembers(ctx context.Context, reque
 
 // AddRequesterToRequesterGroup. Add Requester to Requester Group.
 // https://api.freshservice.com/v2/#add_member_to_requester_group
-func (f *FreshServiceClient) AddRequesterToRequesterGroup(ctx context.Context,
+func (f *FreshServiceClient) AddRequesterToRequesterGroup(
+	ctx context.Context,
 	requesterGroupId string,
 	requesterId string,
 ) (annotations.Annotations, error) {
@@ -543,7 +548,8 @@ func (f *FreshServiceClient) AddRequesterToRequesterGroup(ctx context.Context,
 
 // DeleteRequesterFromRequesterGroup. Delete Requester from Requester Group.
 // https://api.freshservice.com/v2/#delete_member_from_requester_group
-func (f *FreshServiceClient) DeleteRequesterFromRequesterGroup(ctx context.Context,
+func (f *FreshServiceClient) DeleteRequesterFromRequesterGroup(
+	ctx context.Context,
 	requesterGroupId string,
 	requesterId string,
 ) (annotations.Annotations, error) {
@@ -562,4 +568,153 @@ func (f *FreshServiceClient) DeleteRequesterFromRequesterGroup(ctx context.Conte
 	}
 
 	return annotation, nil
+}
+
+func (f *FreshServiceClient) getFetchAPIData(
+	ctx context.Context,
+	uri *url.URL,
+	res any,
+) error {
+	_, _, err := f.doRequest(ctx, http.MethodGet, uri.String(), &res, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *FreshServiceClient) GetTicket(ctx context.Context, ticketId string) (*TicketDetails, error) {
+	getTicketUrl, err := url.JoinPath(f.baseUrl, "tickets", ticketId)
+	if err != nil {
+		return nil, err
+	}
+	uri, err := url.Parse(getTicketUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	v := url.Values{}
+	v.Set("include", strings.Join([]string{"requester", "requested_for", "tags"}, ","))
+
+	uri.RawQuery = v.Encode()
+	var res *TicketResponse
+	err = f.getFetchAPIData(ctx,
+		uri,
+		&res,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return res.Ticket, nil
+}
+
+// TODO(lauren) this can take workspace_id as query param
+func (f *FreshServiceClient) GetTicketFields(ctx context.Context) (*TicketFieldsResponse, error) {
+	ticketFormFieldsUrl, err := url.JoinPath(f.baseUrl, "ticket_form_fields")
+	if err != nil {
+		return nil, err
+	}
+	uri, err := url.Parse(ticketFormFieldsUrl)
+	if err != nil {
+		return nil, err
+	}
+	var res *TicketFieldsResponse
+	err = f.getFetchAPIData(ctx, uri, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (f *FreshServiceClient) GetTicketStatuses(ctx context.Context) ([]*v2.TicketStatus, error) {
+	ticketFields, err := f.GetTicketFields(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, tf := range ticketFields.TicketFields {
+		if tf.Name == "status" && tf.FieldType == "default_status" {
+			ticketStatuses := make([]*v2.TicketStatus, len(tf.Choices))
+			for i, choice := range tf.Choices {
+				ticketStatuses[i] = &v2.TicketStatus{
+					Id:          fmt.Sprint(choice.ID),
+					DisplayName: choice.Value,
+				}
+			}
+			return ticketStatuses, nil
+		}
+	}
+	return nil, errors.New("no ticket statuses found")
+}
+
+func (f *FreshServiceClient) GetServiceItem(ctx context.Context, serviceItemID string) (*ServiceItem, error) {
+	ticketFormFieldsUrl, err := url.JoinPath(f.baseUrl, "service_catalog", "items", serviceItemID)
+	if err != nil {
+		return nil, err
+	}
+	uri, err := url.Parse(ticketFormFieldsUrl)
+	if err != nil {
+		return nil, err
+	}
+	var res *ServiceCatalogItemResponse
+	err = f.getFetchAPIData(ctx, uri, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res.ServiceItem, nil
+}
+
+// TODO(lauren) this can take workspace_id as query param
+// TODO(lauren) this can take category as query param
+func (f *FreshServiceClient) ListServiceCatalogItems(ctx context.Context, opts PageOptions) (*ServiceCatalogItemsListResponse, annotations.Annotations, string, error) {
+	ticketFormFieldsUrl, err := url.JoinPath(f.baseUrl, "service_catalog", "items")
+	if err != nil {
+		return nil, nil, "", err
+	}
+	uri, err := url.Parse(ticketFormFieldsUrl)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	var res *ServiceCatalogItemsListResponse
+	page, annos, err := f.getListAPIData(ctx,
+		strconv.Itoa(opts.Page),
+		strconv.Itoa(opts.PerPage),
+		uri,
+		&res,
+	)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	var nextPageToken string
+	if page.HasNext() {
+		nextPageToken = *page.NextPage
+	}
+
+	return res, annos, nextPageToken, nil
+}
+
+func (f *FreshServiceClient) CreateServiceRequest(ctx context.Context, serviceCatalogItemID string, payload *ServiceRequestPayload) (*ServiceRequest, error) {
+	placeRequestUrl, err := url.JoinPath(f.baseUrl, "service_catalog", "items", serviceCatalogItemID, "place_request")
+	if err != nil {
+		return nil, err
+	}
+	var serviceRequestResponse *ServiceRequestResponse
+	_, _, err = f.doRequest(ctx, http.MethodPost, placeRequestUrl, &serviceRequestResponse, payload)
+	if err != nil {
+		return nil, err
+	}
+	return serviceRequestResponse.ServiceRequest, nil
+}
+
+func (f *FreshServiceClient) UpdateTicket(ctx context.Context, ticketID string, payload *TicketUpdatePayload) (*TicketDetails, any, error) {
+	updateTicketUrl, err := url.JoinPath(f.baseUrl, "tickets", ticketID)
+	if err != nil {
+		return nil, nil, err
+	}
+	var ticketUpdateResponse *TicketResponse
+	_, statusCode, err := f.doRequest(ctx, http.MethodPut, updateTicketUrl, &ticketUpdateResponse, payload)
+	if err != nil {
+		return nil, statusCode, err
+	}
+	return ticketUpdateResponse.Ticket, statusCode, nil
 }

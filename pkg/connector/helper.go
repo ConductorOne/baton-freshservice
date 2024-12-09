@@ -94,6 +94,13 @@ func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error)
 	return skip, b, nil
 }
 
+func ConvertPageToken(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	return strconv.Atoi(token)
+}
+
 func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"id":          role.ID,
