@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
@@ -144,14 +145,10 @@ func isAgent(resource *v2.Resource) (bool, error) {
 
 	field, ok := userTrait.Profile.Fields["is_agent"]
 	if !ok {
-		return false, nil
+		return false, fmt.Errorf("field is_agent could not be found")
 	}
 
-	if field.GetBoolValue() {
-		return true, err
-	}
-
-	return false, nil
+	return field.GetBoolValue(), nil
 }
 
 func requesterGroupResource(ctx context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
