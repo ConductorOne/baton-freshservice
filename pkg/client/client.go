@@ -202,7 +202,7 @@ func (f *FreshServiceClient) getListAPIData(ctx context.Context,
 		return page, nil, err
 	}
 
-	if limitPage < 0 || limitPage > 100 {
+	if limitPage <= 0 || limitPage > 100 {
 		limitPerPage = "100"
 	}
 
