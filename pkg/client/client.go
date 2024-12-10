@@ -11,11 +11,11 @@ import (
 	"time"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	annotations "github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	linkheader "github.com/tomnomnom/linkheader"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/tomnomnom/linkheader"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type FreshServiceClient struct {
@@ -114,12 +114,12 @@ func (f *FreshServiceClient) ListAllRequesterUsers(ctx context.Context, opts Pag
 // GetRequesterUsers. List All Requester(Users).
 // https://api.freshservice.com/v2/#list_all_agents
 func (f *FreshServiceClient) GetRequesterUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, annotations.Annotations, error) {
-	agentsUrl, err := url.JoinPath(f.baseUrl, "requesters")
+	requestersUrl, err := url.JoinPath(f.baseUrl, "requesters")
 	if err != nil {
 		return nil, Page{}, nil, err
 	}
 
-	uri, err := url.Parse(agentsUrl)
+	uri, err := url.Parse(requestersUrl)
 	if err != nil {
 		return nil, Page{}, nil, err
 	}
@@ -311,10 +311,10 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 
 // GetGroupDetail. List All Agents in a Group.
 // https://api.freshservice.com/v2/#view_a_group
-func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*GroupDetailAPIData, annotations.Annotations, error) {
+func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*AgentGroupDetailAPIData, annotations.Annotations, error) {
 	var (
 		err        error
-		res        *GroupDetailAPIData
+		res        *AgentGroupDetailAPIData
 		annotation annotations.Annotations
 	)
 	groupUrl, err := url.JoinPath(f.baseUrl, "groups", groupId)
@@ -329,11 +329,11 @@ func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string)
 	return res, annotation, nil
 }
 
-// UpdateGroupMembers. Update the existing group to add another agent to the group
+// UpdateAgentGroupMembers. Update the existing agent group to add another agent to the group
 // https://api.freshservice.com/v2/#update_a_group
-func (f *FreshServiceClient) UpdateGroupMembers(ctx context.Context, groupId string, usersId []int64) (annotations.Annotations, error) {
+func (f *FreshServiceClient) UpdateAgentGroupMembers(ctx context.Context, groupId string, usersId []int64) (annotations.Annotations, error) {
 	var (
-		body       GroupMembers
+		body       AgentGroup
 		res        any
 		annotation annotations.Annotations
 	)
@@ -537,10 +537,10 @@ func (f *FreshServiceClient) GetRequesterGroups(ctx context.Context, startPage, 
 
 // GetRequesterGroupMembers. List Requester Group Members.
 // https://api.freshservice.com/v2/#list_members_of_requester_group
-func (f *FreshServiceClient) GetRequesterGroupMembers(ctx context.Context, requesterGroupId string) (*requesterAPIData, annotations.Annotations, error) {
+func (f *FreshServiceClient) GetRequesterGroupMembers(ctx context.Context, requesterGroupId string) (*requesterGroupMembersAPIData, annotations.Annotations, error) {
 	var (
 		err        error
-		res        *requesterAPIData
+		res        *requesterGroupMembersAPIData
 		annotation annotations.Annotations
 	)
 	groupUrl, err := url.JoinPath(f.baseUrl, "requester_groups", requesterGroupId, "members")

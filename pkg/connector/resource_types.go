@@ -20,14 +20,14 @@ var (
 	requesterResourceType = &v2.ResourceType{
 		Id:          "requester",
 		DisplayName: "Requester",
-		Description: "Requester (user) of FreshService",
+		Description: "Requester users of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_USER},
 		Annotations: annotations.New(&v2.SkipEntitlementsAndGrants{}),
 	}
 	agentGroupResourceType = &v2.ResourceType{
 		Id:          "agent_group",
-		DisplayName: "Group",
-		Description: "Groups of FreshService",
+		DisplayName: "Agent Group",
+		Description: "Agent groups of FreshService",
 		Traits: []v2.ResourceType_Trait{
 			v2.ResourceType_TRAIT_GROUP,
 		},
@@ -41,7 +41,7 @@ var (
 	resourceTypeRequesterGroup = &v2.ResourceType{
 		Id:          "requester_group",
 		DisplayName: "Requester Group",
-		Description: "Requester Group of FreshService",
+		Description: "Requester groups of FreshService",
 		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
 	}
 )

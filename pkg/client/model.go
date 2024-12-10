@@ -7,35 +7,27 @@ type auth struct {
 }
 
 type AgentsAPIData struct {
-	Agents []Agents `json:"agents,omitempty"`
+	Agents []Agent `json:"agents,omitempty"`
 }
 
-type Agents struct {
-	Active    bool         `json:"active,omitempty"`
-	Address   string       `json:"address,omitempty"`
-	Email     string       `json:"email,omitempty"`
-	FirstName string       `json:"first_name,omitempty"`
-	ID        int64        `json:"id,omitempty"`
-	LastName  string       `json:"last_name,omitempty"`
-	Roles     []AgentRoles `json:"roles,omitempty"`
+type Agent struct {
+	Active    bool        `json:"active,omitempty"`
+	Address   string      `json:"address,omitempty"`
+	Email     string      `json:"email,omitempty"`
+	FirstName string      `json:"first_name,omitempty"`
+	ID        int64       `json:"id,omitempty"`
+	LastName  string      `json:"last_name,omitempty"`
+	Roles     []AgentRole `json:"roles,omitempty"`
 }
 
 type AgentDetailAPIData struct {
-	Agent Agents `json:"agent,omitempty"`
+	Agent Agent `json:"agent,omitempty"`
 }
 
-type AgentRoles struct {
+type AgentRole struct {
 	RoleID          int64    `json:"role_id,omitempty"`
 	AssignmentScope string   `json:"assignment_scope,omitempty"`
 	Groups          []string `json:"groups,omitempty"`
-}
-
-type Group struct {
-	ID          int64   `json:"id,omitempty"`
-	Name        string  `json:"name,omitempty"`
-	Description string  `json:"description,omitempty"`
-	AgentIDs    []int64 `json:"agent_ids,omitempty"`
-	Type        string  `json:"type,omitempty"`
 }
 
 type RolesAPIData struct {
@@ -51,31 +43,32 @@ type Roles struct {
 }
 
 type AgentGroupsAPIData struct {
-	Groups []Group `json:"groups,omitempty"`
+	Groups []AgentGroup `json:"groups,omitempty"`
 }
 
-type Groups struct {
+type AgentGroup struct {
 	ID          int64   `json:"id,omitempty"`
 	Name        string  `json:"name,omitempty"`
 	Description string  `json:"description,omitempty"`
 	Members     []int64 `json:"members,omitempty"`
 }
 
-// TODO(lauren) Rename to AgentGroupDetailAPIData
-type GroupDetailAPIData struct {
-	Group Groups `json:"group,omitempty"`
+type AgentGroupDetailAPIData struct {
+	Group AgentGroup `json:"group,omitempty"`
 }
 
 type UpdateAgentRoles struct {
 	Roles []BodyRole `json:"roles"`
 }
 
+// TODO(lauren) I think we can use AgentRole instead of BodyRole
 type BodyRole struct {
 	RoleID          int64  `json:"role_id"`
 	AssignmentScope string `json:"assignment_scope"`
 }
 
-type GroupMembers struct {
+// TODO(lauren) I think we can just use AgentGroup
+type AgentGroupMembers struct {
 	Members []int64 `json:"members"`
 }
 
@@ -104,11 +97,11 @@ type RequesterGroup struct {
 	Type        string `json:"type,omitempty"`
 }
 
-type requesterAPIData struct {
-	Requesters []Requester `json:"requesters,omitempty"`
+type requesterGroupMembersAPIData struct {
+	Requesters []RequesterGroupMember `json:"requesters,omitempty"`
 }
 
-type Requester struct {
+type RequesterGroupMember struct {
 	ID        int    `json:"id,omitempty"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`

@@ -10,18 +10,18 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 )
 
-type userBuilder struct {
+type agentUserBuilder struct {
 	resourceType *v2.ResourceType
 	client       *client.FreshServiceClient
 }
 
-func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
+func (u *agentUserBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return agentUserResourceType
 }
 
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
-func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (u *agentUserBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
 	bag, pageToken, err := getToken(pToken, agentUserResourceType)
 	if err != nil {
@@ -59,22 +59,15 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 }
 
 // Entitlements always returns an empty slice for users.
-func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
+func (u *agentUserBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	return nil, "", nil, nil
 }
 
 // Grants always returns an empty slice for users since they don't have any entitlements.
-func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (u *agentUserBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
-	userId := resource.Id.Resource
-	// TODO(lauren) remove this
-	if ok, err := isAgent(resource); !ok {
-		if err != nil {
-			return nil, "", nil, err
-		}
 
-		return nil, "", nil, nil
-	}
+	userId := resource.Id.Resource
 
 	agentDetail, annotation, err := u.client.GetAgentDetail(ctx, userId)
 	if err != nil {
@@ -100,8 +93,8 @@ func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	return rv, "", annotation, nil
 }
 
-func newAgentUserBuilder(c *client.FreshServiceClient) *userBuilder {
-	return &userBuilder{
+func newAgentUserBuilder(c *client.FreshServiceClient) *agentUserBuilder {
+	return &agentUserBuilder{
 		resourceType: agentUserResourceType,
 		client:       c,
 	}

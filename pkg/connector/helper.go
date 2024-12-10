@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
@@ -19,7 +18,7 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"email":      user.PrimaryEmail,
-		"is_agent":   user.IsAgent,
+		"is_agent":   false,
 	}
 
 	switch user.Active {
@@ -54,7 +53,7 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 	return ret, nil
 }
 
-func agentResource(ctx context.Context, user *client.Agents, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
@@ -99,11 +98,10 @@ func agentResource(ctx context.Context, user *client.Agents, parentResourceID *v
 }
 
 // Create a new connector resource for FreshService.
-func groupResource(ctx context.Context, group *client.Group, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func agentGroupResource(ctx context.Context, group *client.AgentGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"group_id":   group.ID,
 		"group_name": group.Name,
-		"group_type": group.Type,
 	}
 	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
 	resource, err := rs.NewGroupResource(
@@ -186,20 +184,6 @@ func getToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*paginat
 	}
 
 	return bag, pageToken, nil
-}
-
-func isAgent(resource *v2.Resource) (bool, error) {
-	userTrait, err := rs.GetUserTrait(resource)
-	if err != nil {
-		return false, err
-	}
-
-	field, ok := userTrait.Profile.Fields["is_agent"]
-	if !ok {
-		return false, fmt.Errorf("field is_agent could not be found")
-	}
-
-	return field.GetBoolValue(), nil
 }
 
 func requesterGroupResource(ctx context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {

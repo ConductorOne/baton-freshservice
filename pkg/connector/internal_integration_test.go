@@ -37,7 +37,7 @@ func TestUsersBuilderList(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	u := &userBuilder{
+	u := &agentUserBuilder{
 		resourceType: agentUserResourceType,
 		client:       cliTest,
 	}
@@ -167,7 +167,7 @@ func getGroupForTesting(ctxTest context.Context, id string, name, description st
 		return nil, err
 	}
 
-	return groupResource(ctxTest, &client.Group{
+	return agentGroupResource(ctxTest, &client.Group{
 		ID:          int64(num),
 		Name:        name,
 		Description: description,
@@ -359,7 +359,7 @@ func TestUserGrants(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	u := &userBuilder{
+	u := &agentUserBuilder{
 		resourceType: agentUserResourceType,
 		client:       cliTest,
 	}

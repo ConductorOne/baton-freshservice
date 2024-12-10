@@ -51,7 +51,7 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 
 	for _, group := range groups.Groups {
 		groupCopy := group
-		ur, err := groupResource(ctx, &groupCopy, nil)
+		ur, err := agentGroupResource(ctx, &groupCopy, nil)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -124,7 +124,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	_, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
+	_, err = g.client.UpdateAgentGroupMembers(ctx, groupId, groupDetail.Group.Members)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	_, err = g.client.UpdateGroupMembers(ctx,
+	_, err = g.client.UpdateAgentGroupMembers(ctx,
 		groupId,
 		members,
 	)
