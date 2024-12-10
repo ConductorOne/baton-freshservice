@@ -99,7 +99,12 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 		return nil, err
 	}
 
-	c, err := connectorbuilder.NewConnector(ctx, cb)
+	opts := make([]connectorbuilder.Opt, 0)
+	if cfg.GetBool(field.TicketingField.FieldName) {
+		opts = append(opts, connectorbuilder.WithTicketingEnabled())
+	}
+
+	c, err := connectorbuilder.NewConnector(ctx, cb, opts...)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
