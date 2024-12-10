@@ -16,19 +16,19 @@ type userBuilder struct {
 }
 
 func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
-	return userResourceType
+	return agentUserResourceType
 }
 
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := getToken(pToken, userResourceType)
+	bag, pageToken, err := getToken(pToken, agentUserResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	users, nextPageToken, annotation, err := u.client.ListAllUsers(ctx, client.PageOptions{
+	users, nextPageToken, annotation, err := u.client.ListAllAgentUsers(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
@@ -41,9 +41,9 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	for _, user := range users.Requesters {
+	for _, user := range users.Agents {
 		userCopy := user
-		ur, err := userResource(ctx, &userCopy, nil)
+		ur, err := agentResource(ctx, &userCopy, nil)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -67,6 +67,7 @@ func (u *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	var rv []*v2.Grant
 	userId := resource.Id.Resource
+	// TODO(lauren) remove this
 	if ok, err := isAgent(resource); !ok {
 		if err != nil {
 			return nil, "", nil, err
@@ -89,7 +90,7 @@ func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		}
 
 		userId := &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: agentUserResourceType.Id,
 			Resource:     userId,
 		}
 		grant := grant.NewGrant(roleRes, assignedEntitlement, userId)
@@ -99,9 +100,9 @@ func (u *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	return rv, "", annotation, nil
 }
 
-func newUserBuilder(c *client.FreshServiceClient) *userBuilder {
+func newAgentUserBuilder(c *client.FreshServiceClient) *userBuilder {
 	return &userBuilder{
-		resourceType: userResourceType,
+		resourceType: agentUserResourceType,
 		client:       c,
 	}
 }

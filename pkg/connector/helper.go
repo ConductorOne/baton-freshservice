@@ -11,7 +11,7 @@ import (
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
-func userResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func requesterUserResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
@@ -43,7 +43,51 @@ func userResource(ctx context.Context, user *client.Requesters, parentResourceID
 
 	ret, err := rs.NewUserResource(
 		displayName,
-		userResourceType,
+		requesterResourceType,
+		user.ID,
+		userTraits,
+		rs.WithParentResourceID(parentResourceID))
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
+func agentResource(ctx context.Context, user *client.Agents, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
+	profile := map[string]interface{}{
+		"user_id":    user.ID,
+		"login":      user.Email,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"email":      user.Email,
+		"is_agent":   true,
+	}
+
+	switch user.Active {
+	case true:
+		userStatus = v2.UserTrait_Status_STATUS_ENABLED
+	case false:
+		userStatus = v2.UserTrait_Status_STATUS_DISABLED
+	}
+
+	userTraits := []rs.UserTraitOption{
+		rs.WithUserProfile(profile),
+		rs.WithStatus(userStatus),
+		rs.WithUserLogin(user.Email),
+		rs.WithEmail(user.Email, true),
+	}
+
+	displayName := user.FirstName + " " + user.LastName
+	// TODO(lauren) why are we dooing this
+	if user.FirstName == "" {
+		displayName = user.Email
+	}
+
+	ret, err := rs.NewUserResource(
+		displayName,
+		agentUserResourceType,
 		user.ID,
 		userTraits,
 		rs.WithParentResourceID(parentResourceID))
@@ -64,7 +108,7 @@ func groupResource(ctx context.Context, group *client.Group, parentResourceID *v
 	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
 	resource, err := rs.NewGroupResource(
 		group.Name,
-		groupResourceType,
+		agentGroupResourceType,
 		group.ID,
 		groupTraitOptions,
 		rs.WithParentResourceID(parentResourceID),

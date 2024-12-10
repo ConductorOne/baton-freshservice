@@ -102,8 +102,8 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 	return &fs, nil
 }
 
-func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions) (*requestersAPIData, string, annotations.Annotations, error) {
-	users, page, annotation, err := f.GetUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+func (f *FreshServiceClient) ListAllRequesterUsers(ctx context.Context, opts PageOptions) (*requestersAPIData, string, annotations.Annotations, error) {
+	users, page, annotation, err := f.GetRequesterUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -111,9 +111,9 @@ func (f *FreshServiceClient) ListAllUsers(ctx context.Context, opts PageOptions)
 	return users, *page.NextPage, annotation, nil
 }
 
-// GetUsers. List All Agents(Users).
+// GetRequesterUsers. List All Requester(Users).
 // https://api.freshservice.com/v2/#list_all_agents
-func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, annotations.Annotations, error) {
+func (f *FreshServiceClient) GetRequesterUsers(ctx context.Context, startPage, limitPerPage string) (*requestersAPIData, Page, annotations.Annotations, error) {
 	agentsUrl, err := url.JoinPath(f.baseUrl, "requesters")
 	if err != nil {
 		return nil, Page{}, nil, err
@@ -123,10 +123,6 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	if err != nil {
 		return nil, Page{}, nil, err
 	}
-
-	q := uri.Query()
-	q.Set("include_agents", "true")
-	uri.RawQuery = q.Encode()
 
 	var res *requestersAPIData
 	page, annotation, err := f.getListAPIData(ctx,
@@ -142,8 +138,42 @@ func (f *FreshServiceClient) GetUsers(ctx context.Context, startPage, limitPerPa
 	return res, page, annotation, nil
 }
 
-func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions) (*GroupsAPIData, string, annotations.Annotations, error) {
-	groups, page, annotations, err := f.GetGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+func (f *FreshServiceClient) ListAllAgentUsers(ctx context.Context, opts PageOptions) (*AgentsAPIData, string, annotations.Annotations, error) {
+	users, page, annotation, err := f.GetAgentUsers(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return users, *page.NextPage, annotation, nil
+}
+
+func (f *FreshServiceClient) GetAgentUsers(ctx context.Context, startPage, limitPerPage string) (*AgentsAPIData, Page, annotations.Annotations, error) {
+	agentsUrl, err := url.JoinPath(f.baseUrl, "agents")
+	if err != nil {
+		return nil, Page{}, nil, err
+	}
+
+	uri, err := url.Parse(agentsUrl)
+	if err != nil {
+		return nil, Page{}, nil, err
+	}
+
+	var res *AgentsAPIData
+	page, annotation, err := f.getListAPIData(ctx,
+		startPage,
+		limitPerPage,
+		uri,
+		&res,
+	)
+	if err != nil {
+		return nil, page, nil, err
+	}
+
+	return res, page, annotation, nil
+}
+
+func (f *FreshServiceClient) ListAllAgentGroups(ctx context.Context, opts PageOptions) (*AgentGroupsAPIData, string, annotations.Annotations, error) {
+	groups, page, annotations, err := f.GetAgentGroups(ctx, strconv.Itoa(opts.Page), strconv.Itoa(opts.PerPage))
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -151,9 +181,9 @@ func (f *FreshServiceClient) ListAllGroups(ctx context.Context, opts PageOptions
 	return groups, *page.NextPage, annotations, nil
 }
 
-// GetGroups. List All Agent Groups(Groups).
+// GetAgentGroups. List All Agent Groups(Groups).
 // https://api.freshservice.com/v2/#view_all_group
-func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerPage string) (*GroupsAPIData, Page, annotations.Annotations, error) {
+func (f *FreshServiceClient) GetAgentGroups(ctx context.Context, startPage, limitPerPage string) (*AgentGroupsAPIData, Page, annotations.Annotations, error) {
 	groupsUrl, err := url.JoinPath(f.baseUrl, "groups")
 	if err != nil {
 		return nil, Page{}, nil, err
@@ -164,7 +194,7 @@ func (f *FreshServiceClient) GetGroups(ctx context.Context, startPage, limitPerP
 		return nil, Page{}, nil, err
 	}
 
-	var res *GroupsAPIData
+	var res *AgentGroupsAPIData
 	page, annotation, err := f.getListAPIData(ctx,
 		startPage,
 		limitPerPage,

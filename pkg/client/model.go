@@ -50,7 +50,7 @@ type Roles struct {
 	RoleType    int      `json:"role_type,omitempty"`
 }
 
-type GroupsAPIData struct {
+type AgentGroupsAPIData struct {
 	Groups []Group `json:"groups,omitempty"`
 }
 
@@ -61,6 +61,7 @@ type Groups struct {
 	Members     []int64 `json:"members,omitempty"`
 }
 
+// TODO(lauren) Rename to AgentGroupDetailAPIData
 type GroupDetailAPIData struct {
 	Group Groups `json:"group,omitempty"`
 }
