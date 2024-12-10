@@ -167,7 +167,7 @@ func getGroupForTesting(ctxTest context.Context, id string, name, description st
 		return nil, err
 	}
 
-	return agentGroupResource(ctxTest, &client.Group{
+	return agentGroupResource(ctxTest, &client.AgentGroup{
 		ID:          int64(num),
 		Name:        name,
 		Description: description,
