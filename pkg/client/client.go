@@ -309,9 +309,9 @@ func (f *FreshServiceClient) GetRoles(ctx context.Context, startPage, limitPerPa
 	return res, page, annotation, nil
 }
 
-// GetGroupDetail. List All Agents in a Group.
+// GetAgentGroupDetail. List All Agents in a Group.
 // https://api.freshservice.com/v2/#view_a_group
-func (f *FreshServiceClient) GetGroupDetail(ctx context.Context, groupId string) (*AgentGroupDetailAPIData, annotations.Annotations, error) {
+func (f *FreshServiceClient) GetAgentGroupDetail(ctx context.Context, groupId string) (*AgentGroupDetailAPIData, annotations.Annotations, error) {
 	var (
 		err        error
 		res        *AgentGroupDetailAPIData

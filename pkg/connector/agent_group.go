@@ -83,7 +83,7 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 		rv []*v2.Grant
 		gr *v2.Grant
 	)
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, resource.Id.Resource)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -113,7 +113,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 
 	groupId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
