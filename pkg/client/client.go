@@ -433,7 +433,7 @@ func (f *FreshServiceClient) doRequest(
 
 // UpdateAgentRoles. Update an Agent.
 // https://api.freshservice.com/v2/#update_an_agent
-func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []BodyRole, userId string) error {
+func (f *FreshServiceClient) UpdateAgentRoles(ctx context.Context, roleIDs []AgentRole, userId string) error {
 	var (
 		body UpdateAgentRoles
 		res  any

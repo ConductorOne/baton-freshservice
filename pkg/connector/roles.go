@@ -101,16 +101,16 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		return nil, err
 	}
 
-	var bodyRoles []client.BodyRole
+	var bodyRoles []client.AgentRole
 	for _, role := range roles.Agent.Roles {
-		bodyRoles = append(bodyRoles, client.BodyRole{
+		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
 			AssignmentScope: "assigned_items",
 		})
 	}
 
 	// Adding new role
-	bodyRoles = append(bodyRoles, client.BodyRole{
+	bodyRoles = append(bodyRoles, client.AgentRole{
 		RoleID:          roleId64,
 		AssignmentScope: "assigned_items",
 	})
@@ -148,13 +148,13 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		return nil, err
 	}
 
-	var bodyRoles []client.BodyRole
+	var bodyRoles []client.AgentRole
 	for _, role := range roles.Agent.Roles {
 		if roleId64 == role.RoleID {
 			continue
 		}
 
-		bodyRoles = append(bodyRoles, client.BodyRole{
+		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
 			AssignmentScope: "assigned_items",
 		})

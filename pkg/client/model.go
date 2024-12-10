@@ -58,18 +58,7 @@ type AgentGroupDetailAPIData struct {
 }
 
 type UpdateAgentRoles struct {
-	Roles []BodyRole `json:"roles"`
-}
-
-// TODO(lauren) I think we can use AgentRole instead of BodyRole
-type BodyRole struct {
-	RoleID          int64  `json:"role_id"`
-	AssignmentScope string `json:"assignment_scope"`
-}
-
-// TODO(lauren) I think we can just use AgentGroup
-type AgentGroupMembers struct {
-	Members []int64 `json:"members"`
+	Roles []AgentRole `json:"roles"`
 }
 
 type requestersAPIData struct {
