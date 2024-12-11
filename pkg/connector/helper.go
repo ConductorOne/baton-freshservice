@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -35,8 +36,8 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 		rs.WithEmail(user.PrimaryEmail, true),
 	}
 
-	displayName := user.FirstName + " " + user.LastName
-	if user.FirstName == "" {
+	displayName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+	if displayName == "" {
 		displayName = user.PrimaryEmail
 	}
 
@@ -78,9 +79,8 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 		rs.WithEmail(user.Email, true),
 	}
 
-	displayName := user.FirstName + " " + user.LastName
-	// TODO(lauren) why are we dooing this
-	if user.FirstName == "" {
+	displayName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+	if displayName == "" {
 		displayName = user.Email
 	}
 
