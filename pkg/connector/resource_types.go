@@ -5,11 +5,6 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 )
 
-// By default, the number of objects returned per page is 30.
-// The maximum number of objects that can be retrieved per page is 100
-// https://developers.freshdesk.com/api/#pagination
-const ITEMSPERPAGE = 100
-
 var (
 	agentUserResourceType = &v2.ResourceType{
 		Id:          "agent",

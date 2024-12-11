@@ -36,8 +36,8 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 		return nil, "", nil, err
 	}
 
-	groups, nextPageToken, annotation, err := g.client.ListAllAgentGroups(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	groups, nextPageToken, annotation, err := g.client.ListAgentGroups(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {
@@ -91,7 +91,7 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 	for _, agent := range groupDetail.Group.Members {
 		userId := &v2.ResourceId{
 			ResourceType: agentUserResourceType.Id,
-			Resource:     fmt.Sprintf("%d", agent),
+			Resource:     strconv.FormatInt(agent, 10),
 		}
 		gr = grant.NewGrant(resource, memberEntitlement, userId)
 		rv = append(rv, gr)
@@ -167,7 +167,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	_, err = g.client.UpdateAgentGroupMembers(ctx,
+	annotation, err = g.client.UpdateAgentGroupMembers(ctx,
 		groupId,
 		members,
 	)

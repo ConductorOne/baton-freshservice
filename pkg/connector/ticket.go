@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -27,7 +28,7 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 	}
 
 	serviceCatalogItems, annos, nextPage, err := c.client.ListServiceCatalogItems(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+		PerPage: pt.Size,
 		Page:    page,
 	})
 	if err != nil {
@@ -39,12 +40,11 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 		return nil, "", nil, err
 	}
 
-	for _, serviceCatalogItem := range serviceCatalogItems.ServiceItems {
-		// 1 denotes draft and 2 denotes published for visibility.
-		if serviceCatalogItem.Deleted || serviceCatalogItem.Visibility == 1 {
+	for _, serviceItem := range serviceCatalogItems.ServiceItems {
+		if serviceItem.Deleted || serviceItem.Visibility == client.ServiceItemVisibilityDraft {
 			continue
 		}
-		ticketSchema, err := c.schemaForServiceCatalogItem(ctx, fmt.Sprintf("%d", serviceCatalogItem.DisplayID), ticketStatuses)
+		ticketSchema, err := c.schemaForServiceCatalogItem(ctx, strconv.FormatInt(serviceItem.DisplayID, 10), ticketStatuses)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -56,7 +56,7 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 }
 
 func (c *Connector) GetTicket(ctx context.Context, ticketId string) (*v2.Ticket, annotations.Annotations, error) {
-	ticket, err := c.client.GetTicket(ctx, ticketId)
+	ticket, annos, err := c.client.GetTicket(ctx, ticketId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -65,15 +65,15 @@ func (c *Connector) GetTicket(ctx context.Context, ticketId string) (*v2.Ticket,
 	ticketUrl := fmt.Sprintf(ticketUrlFmt, domain, ticket.ID)
 
 	return &v2.Ticket{
-		Id:          fmt.Sprintf("%d", ticket.ID),
+		Id:          strconv.Itoa(ticket.ID),
 		DisplayName: ticket.Subject,
 		Description: ticket.DescriptionText,
-		Status:      &v2.TicketStatus{Id: fmt.Sprintf("%d", ticket.Status)},
+		Status:      &v2.TicketStatus{Id: strconv.Itoa(ticket.Status)},
 		Labels:      ticket.Tags,
 		Url:         ticketUrl,
 		CreatedAt:   timestamppb.New(ticket.CreatedAt),
 		UpdatedAt:   timestamppb.New(ticket.UpdatedAt),
-	}, nil, nil
+	}, annos, nil
 }
 
 func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema *v2.TicketSchema) (*v2.Ticket, annotations.Annotations, error) {
@@ -138,7 +138,7 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 
 	catalogItemID := schema.GetId()
 
-	serviceRequest, err := c.client.CreateServiceRequest(ctx, catalogItemID, createServiceCatalogRequestPayload)
+	serviceRequest, annos, err := c.client.CreateServiceRequest(ctx, catalogItemID, createServiceCatalogRequestPayload)
 	if err != nil {
 		return nil, nil, fmt.Errorf("freshservice-connector: failed to create service request %s: %w", catalogItemID, err)
 	}
@@ -153,10 +153,10 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 	serviceRequestURL := fmt.Sprintf(ticketUrlFmt, domain, serviceRequest.ID)
 
 	ticketResp := &v2.Ticket{
-		Id:           fmt.Sprintf("%d", serviceRequest.ID),
+		Id:           strconv.Itoa(serviceRequest.ID),
 		DisplayName:  serviceRequest.Subject,
 		Description:  serviceRequest.DescriptionText,
-		Status:       &v2.TicketStatus{Id: fmt.Sprintf("%d", serviceRequest.Status)},
+		Status:       &v2.TicketStatus{Id: strconv.Itoa(serviceRequest.Status)},
 		Labels:       serviceRequest.Tags,
 		Url:          serviceRequestURL,
 		CreatedAt:    timestamppb.New(serviceRequest.CreatedAt),
@@ -164,16 +164,16 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 		RequestedFor: ticket.RequestedFor,
 	}
 
-	updatedTicket, _, err := c.client.UpdateTicket(ctx, ticketResp.Id, updateTicketReq)
+	updatedTicket, annos, err := c.client.UpdateTicket(ctx, ticketResp.Id, updateTicketReq)
 	if err != nil {
-		return ticketResp, nil, fmt.Errorf("freshservice-connector: failed to update ticket %s: %w", catalogItemID, err)
+		return ticketResp, annos, fmt.Errorf("freshservice-connector: failed to update ticket %s: %w", catalogItemID, err)
 	}
 
 	ticketResp.DisplayName = updatedTicket.Subject
 	ticketResp.Description = updatedTicket.DescriptionText
 	ticketResp.Labels = updatedTicket.Tags
 
-	return ticketResp, nil, nil
+	return ticketResp, annos, nil
 }
 
 func (c *Connector) GetTicketSchema(ctx context.Context, schemaID string) (*v2.TicketSchema, annotations.Annotations, error) {
@@ -264,32 +264,32 @@ func (c *Connector) schemaForServiceCatalogItem(ctx context.Context, schemaID st
 				  ]
 				],
 			*/
-			allowedValues := make([]string, len(cf.Choices))
-			for i, choice := range cf.Choices {
-				allowedValues[i] = choice[0]
+			allowedValues := make([]string, 0, len(cf.Choices))
+			for _, choice := range cf.Choices {
+				allowedValues = append(allowedValues, choice[0])
 			}
 			cfSchema = sdkTicket.PickStringFieldSchema(cf.Name, cf.Label, cf.Required, allowedValues)
 		case "custom_multi_select_dropdown":
-			allowedValues := make([]string, len(cf.Choices))
-			for i, choice := range cf.Choices {
-				// Multiselect choices are an array of a string array that has two elements, first element is ID and second element is string
-				/*
-				   "choices": [
-				     [
-				       "First multi choice",
-				       "6a4abac7-4871-4fd3-a6c7-bcbb485550f6"
-				     ],
-				     [
-				       "Second multi choice",
-				       "c978633e-dea9-41cb-bbd6-88a86a6afc06"
-				     ],
-				     [
-				       "Third multi choice",
-				       "c480afce-d009-4ea8-a471-6c141a64235f"
-				     ]
-				   ],
-				*/
-				allowedValues[i] = choice[0]
+			// Multiselect choices are an array of a string array that has two elements, first element is ID and second element is string
+			/*
+			   "choices": [
+			     [
+			       "First multi choice",
+			       "6a4abac7-4871-4fd3-a6c7-bcbb485550f6"
+			     ],
+			     [
+			       "Second multi choice",
+			       "c978633e-dea9-41cb-bbd6-88a86a6afc06"
+			     ],
+			     [
+			       "Third multi choice",
+			       "c480afce-d009-4ea8-a471-6c141a64235f"
+			     ]
+			   ],
+			*/
+			allowedValues := make([]string, 0, len(cf.Choices))
+			for _, choice := range cf.Choices {
+				allowedValues = append(allowedValues, choice[0])
 			}
 			cfSchema = sdkTicket.PickMultipleStringsFieldSchema(cf.Name, cf.Label, cf.Required, allowedValues)
 		case "custom_lookup_bigint":

@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -30,8 +31,8 @@ func (rg *requesterGroupBuilder) List(ctx context.Context, parentResourceID *v2.
 		return nil, "", nil, err
 	}
 
-	requesterGroups, nextPageToken, annotation, err := rg.client.ListAllRequesterGroups(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	requesterGroups, nextPageToken, annotation, err := rg.client.ListRequesterGroups(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {
@@ -77,7 +78,19 @@ func (rg *requesterGroupBuilder) Grants(ctx context.Context, resource *v2.Resour
 		rv []*v2.Grant
 		gr *v2.Grant
 	)
-	groupDetail, annotation, err := rg.client.GetRequesterGroupMembers(ctx, resource.Id.Resource)
+	bag, pageToken, err := getToken(pToken, resourceTypeRequesterGroup)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	groupDetail, nextPageToken, annotation, err := rg.client.ListRequesterGroupMembers(ctx, resource.Id.Resource, client.PageOptions{
+		PerPage: pToken.Size,
+		Page:    pageToken,
+	})
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	err = bag.Next(nextPageToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -85,7 +98,7 @@ func (rg *requesterGroupBuilder) Grants(ctx context.Context, resource *v2.Resour
 	for _, requester := range groupDetail.Requesters {
 		requesterId := &v2.ResourceId{
 			ResourceType: requesterResourceType.Id,
-			Resource:     fmt.Sprintf("%d", requester.ID),
+			Resource:     strconv.Itoa(requester.ID),
 		}
 		gr = grant.NewGrant(resource, memberEntitlement, requesterId)
 		rv = append(rv, gr)

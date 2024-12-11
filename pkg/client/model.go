@@ -2,6 +2,8 @@ package client
 
 import "time"
 
+const ServiceItemVisibilityDraft = 1
+
 type auth struct {
 	bearerToken string
 }
@@ -210,7 +212,7 @@ type ServiceCatalogItemResponse struct {
 }
 
 type ServiceCatalogItemsListResponse struct {
-	ServiceItems []ServiceItem `json:"service_items"`
+	ServiceItems []*ServiceItem `json:"service_items"`
 }
 
 type ServiceItem struct {

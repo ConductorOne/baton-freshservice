@@ -27,8 +27,8 @@ func (u *requesterUserBuilder) List(ctx context.Context, parentResourceID *v2.Re
 		return nil, "", nil, err
 	}
 
-	users, nextPageToken, annotation, err := u.client.ListAllRequesterUsers(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	users, nextPageToken, annotation, err := u.client.ListRequesterUsers(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {

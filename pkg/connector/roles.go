@@ -32,8 +32,8 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	roles, nextPageToken, annotation, err := r.client.ListAllRoles(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	roles, nextPageToken, annotation, err := r.client.ListRoles(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {
@@ -115,7 +115,7 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		AssignmentScope: "assigned_items",
 	})
 
-	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	annotation, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		})
 	}
 
-	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	annotation, err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}

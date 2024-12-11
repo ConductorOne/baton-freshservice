@@ -28,8 +28,8 @@ func (u *agentUserBuilder) List(ctx context.Context, parentResourceID *v2.Resour
 		return nil, "", nil, err
 	}
 
-	users, nextPageToken, annotation, err := u.client.ListAllAgentUsers(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	users, nextPageToken, annotation, err := u.client.ListAgentUsers(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {
