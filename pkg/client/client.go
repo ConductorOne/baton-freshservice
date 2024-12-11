@@ -129,7 +129,7 @@ func (f *FreshServiceClient) ListAgentUsers(ctx context.Context, opts PageOption
 	}
 
 	var res *AgentsAPIData
-	nextPage, annotation, err := f.getListAPIData(ctx, agentsUrl, &res, WithPage(opts.Page), WithPageLimit(opts.Page))
+	nextPage, annotation, err := f.getListAPIData(ctx, agentsUrl, &res, WithPage(opts.Page), WithPageLimit(opts.PerPage))
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -192,7 +192,7 @@ func (f *FreshServiceClient) ListRoles(ctx context.Context, opts PageOptions) (*
 		return nil, "", nil, err
 	}
 	var roles *RolesAPIData
-	nextPage, annos, err := f.getListAPIData(ctx, rolesUrl, &roles, WithPage(opts.Page), WithPageLimit(opts.Page))
+	nextPage, annos, err := f.getListAPIData(ctx, rolesUrl, &roles, WithPage(opts.Page), WithPageLimit(opts.PerPage))
 	if err != nil {
 		return nil, "", nil, err
 	}

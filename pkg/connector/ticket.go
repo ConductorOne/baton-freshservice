@@ -138,7 +138,7 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 
 	catalogItemID := schema.GetId()
 
-	serviceRequest, annos, err := c.client.CreateServiceRequest(ctx, catalogItemID, createServiceCatalogRequestPayload)
+	serviceRequest, _, err := c.client.CreateServiceRequest(ctx, catalogItemID, createServiceCatalogRequestPayload)
 	if err != nil {
 		return nil, nil, fmt.Errorf("freshservice-connector: failed to create service request %s: %w", catalogItemID, err)
 	}

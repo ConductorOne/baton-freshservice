@@ -19,7 +19,7 @@ type PageOptions struct {
 
 type ReqOpt func(reqURL *url.URL)
 
-// Number of items to return
+// Number of items to return.
 func WithPageLimit(pageLimit int) ReqOpt {
 	if pageLimit <= 0 || pageLimit > ItemsPerPage {
 		pageLimit = ItemsPerPage

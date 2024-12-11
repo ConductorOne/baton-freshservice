@@ -148,7 +148,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, groupId)
+	groupDetail, _, err := g.client.GetAgentGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	annotation, err = g.client.UpdateAgentGroupMembers(ctx,
+	annotation, err := g.client.UpdateAgentGroupMembers(ctx,
 		groupId,
 		members,
 	)
