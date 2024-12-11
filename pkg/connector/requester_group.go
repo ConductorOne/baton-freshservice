@@ -25,7 +25,7 @@ func (rg *requesterGroupBuilder) ResourceType(ctx context.Context) *v2.ResourceT
 
 func (rg *requesterGroupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := getToken(pToken, userResourceType)
+	bag, pageToken, err := getToken(pToken, resourceTypeRequesterGroup)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -63,7 +63,7 @@ func (rg *requesterGroupBuilder) List(ctx context.Context, parentResourceID *v2.
 func (rg *requesterGroupBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
 	options := []ent.EntitlementOption{
-		ent.WithGrantableTo(userResourceType),
+		ent.WithGrantableTo(requesterResourceType),
 		ent.WithDescription(fmt.Sprintf("Access to %s requester group in FreshService", resource.DisplayName)),
 		ent.WithDisplayName(fmt.Sprintf("%s Requester Group %s", resource.DisplayName, memberEntitlement)),
 	}
@@ -84,7 +84,7 @@ func (rg *requesterGroupBuilder) Grants(ctx context.Context, resource *v2.Resour
 
 	for _, requester := range groupDetail.Requesters {
 		requesterId := &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: requesterResourceType.Id,
 			Resource:     fmt.Sprintf("%d", requester.ID),
 		}
 		gr = grant.NewGrant(resource, memberEntitlement, requesterId)
@@ -96,7 +96,7 @@ func (rg *requesterGroupBuilder) Grants(ctx context.Context, resource *v2.Resour
 
 func (rg *requesterGroupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != requesterResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only requesters can be granted requester group membership",
 			zap.String("principal_type", principal.Id.ResourceType),
@@ -119,7 +119,7 @@ func (rg *requesterGroupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (a
 	l := ctxzap.Extract(ctx)
 	principal := grant.Principal
 	entitlement := grant.Entitlement
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != requesterResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only requesters can have requester group membership revoked",
 			zap.String("principal_id", principal.Id.String()),

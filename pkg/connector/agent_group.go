@@ -31,12 +31,12 @@ func (g *groupBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 // Groups include a GroupTrait because they are the 'shape' of a standard group.
 func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
-	bag, pageToken, err := getToken(pToken, groupResourceType)
+	bag, pageToken, err := getToken(pToken, agentGroupResourceType)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	groups, nextPageToken, annotation, err := g.client.ListAllGroups(ctx, client.PageOptions{
+	groups, nextPageToken, annotation, err := g.client.ListAllAgentGroups(ctx, client.PageOptions{
 		PerPage: ITEMSPERPAGE,
 		Page:    pageToken,
 	})
@@ -51,7 +51,7 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 
 	for _, group := range groups.Groups {
 		groupCopy := group
-		ur, err := groupResource(ctx, &groupCopy, nil)
+		ur, err := agentGroupResource(ctx, &groupCopy, nil)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -69,7 +69,7 @@ func (g *groupBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId
 func (g *groupBuilder) Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
 	options := []ent.EntitlementOption{
-		ent.WithGrantableTo(userResourceType),
+		ent.WithGrantableTo(agentUserResourceType),
 		ent.WithDescription(fmt.Sprintf("Access to %s group in FreshService", resource.DisplayName)),
 		ent.WithDisplayName(fmt.Sprintf("%s Group %s", resource.DisplayName, memberEntitlement)),
 	}
@@ -83,14 +83,14 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 		rv []*v2.Grant
 		gr *v2.Grant
 	)
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, resource.Id.Resource)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, resource.Id.Resource)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
 	for _, agent := range groupDetail.Group.Members {
 		userId := &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: agentUserResourceType.Id,
 			Resource:     fmt.Sprintf("%d", agent),
 		}
 		gr = grant.NewGrant(resource, memberEntitlement, userId)
@@ -102,7 +102,7 @@ func (g *groupBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken
 
 func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != agentUserResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only users can be granted group membership",
 			zap.String("principal_type", principal.Id.ResourceType),
@@ -113,7 +113,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 
 	groupId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	_, err = g.client.UpdateGroupMembers(ctx, groupId, groupDetail.Group.Members)
+	_, err = g.client.UpdateAgentGroupMembers(ctx, groupId, groupDetail.Group.Members)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 	l := ctxzap.Extract(ctx)
 	principal := grant.Principal
 	entitlement := grant.Entitlement
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != agentUserResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only users can have group membership revoked",
 			zap.String("principal_id", principal.Id.String()),
@@ -148,7 +148,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 	userId := principal.Id.Resource
 	groupId := entitlement.Resource.Id.Resource
-	groupDetail, annotation, err := g.client.GetGroupDetail(ctx, groupId)
+	groupDetail, annotation, err := g.client.GetAgentGroupDetail(ctx, groupId)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		members = append(members, member)
 	}
 
-	_, err = g.client.UpdateGroupMembers(ctx,
+	_, err = g.client.UpdateAgentGroupMembers(ctx,
 		groupId,
 		members,
 	)
@@ -180,7 +180,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 
 func newGroupBuilder(c *client.FreshServiceClient) *groupBuilder {
 	return &groupBuilder{
-		resourceType: groupResourceType,
+		resourceType: agentGroupResourceType,
 		client:       c,
 	}
 }
