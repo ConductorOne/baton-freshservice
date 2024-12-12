@@ -23,6 +23,7 @@ type FreshServiceClient struct {
 	auth       *auth
 	baseUrl    string
 	domain     string
+	categoryId string
 }
 
 func NewClient() *FreshServiceClient {
@@ -43,6 +44,15 @@ func (f *FreshServiceClient) WithBearerToken(apiToken string) *FreshServiceClien
 func (f *FreshServiceClient) WithDomain(domain string) *FreshServiceClient {
 	f.domain = domain
 	return f
+}
+
+func (f *FreshServiceClient) WithCategoryID(categoryID string) *FreshServiceClient {
+	f.categoryId = categoryID
+	return f
+}
+
+func (f *FreshServiceClient) GetCategoryID() string {
+	return f.categoryId
 }
 
 func (f *FreshServiceClient) getToken() string {
@@ -94,6 +104,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		httpClient: cli,
 		baseUrl:    baseUrl,
 		domain:     domain,
+		categoryId: freshServiceClient.GetCategoryID(),
 		auth: &auth{
 			bearerToken: clientToken,
 		},
@@ -517,12 +528,20 @@ func (f *FreshServiceClient) ListServiceCatalogItems(ctx context.Context, opts P
 		return nil, nil, "", err
 	}
 
+	reqOpts := []ReqOpt{
+		WithPage(opts.Page),
+		WithPageLimit(opts.PerPage),
+	}
+
+	if f.GetCategoryID() != "" {
+		reqOpts = append(reqOpts, WithQueryParam("category_id", f.GetCategoryID()))
+	}
+
 	var res *ServiceCatalogItemsListResponse
 	nextPage, annos, err := f.getListAPIData(ctx,
 		ticketFormFieldsUrl,
 		&res,
-		WithPage(opts.Page),
-		WithPageLimit(opts.PerPage),
+		reqOpts...,
 	)
 	if err != nil {
 		return nil, nil, "", err

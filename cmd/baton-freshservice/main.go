@@ -28,15 +28,20 @@ const (
 var (
 	apiKeyField         = field.StringField(apiKey, field.WithRequired(true), field.WithDescription("The api key for your account."))
 	domainField         = field.StringField(domain, field.WithRequired(true), field.WithDescription("The domain for your account."))
-	configurationFields = []field.SchemaField{apiKeyField, domainField}
+	categoryField       = field.StringField("category-id", field.WithDescription("The category id to filter service items to"))
+	configurationFields = []field.SchemaField{apiKeyField, domainField, categoryField}
 )
+
+var configRelations = []field.SchemaFieldRelationship{
+	field.FieldsDependentOn([]field.SchemaField{categoryField}, []field.SchemaField{field.ListTicketSchemasField}),
+}
 
 func main() {
 	ctx := context.Background()
 	_, cmd, err := configSchema.DefineConfiguration(ctx,
 		connectorName,
 		getConnector,
-		field.NewConfiguration(configurationFields),
+		field.NewConfiguration(configurationFields, configRelations...),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -67,11 +72,10 @@ func extractSubdomain(input string) (string, error) {
 }
 
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
-	var (
-		fsClient = client.NewClient()
-		fsToken  = cfg.GetString(apiKey)
-		fsDomain = cfg.GetString(domain)
-	)
+	fsClient := client.NewClient()
+	fsToken := cfg.GetString(apiKey)
+	fsDomain := cfg.GetString(domain)
+
 	l := ctxzap.Extract(ctx)
 	subdomain, err := extractSubdomain(fsDomain)
 	if err != nil {
@@ -82,12 +86,12 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 
 	// Validate the subdomain format
 	if strings.Contains(fsDomain, ".") || strings.Contains(fsDomain, "/") || fsDomain == "" {
-		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshdesk.com')", fsDomain)
+		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshservice.com')", fsDomain)
 	}
 
-	if fsToken != "" && fsDomain != "" {
-		fsClient.WithBearerToken(fsToken).WithDomain(fsDomain)
-	}
+	categoryId := cfg.GetString(categoryField.FieldName)
+
+	fsClient = fsClient.WithBearerToken(fsToken).WithDomain(fsDomain).WithCategoryID(categoryId)
 
 	cb, err := connector.New(ctx,
 		fsToken,
