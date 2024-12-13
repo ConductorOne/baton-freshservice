@@ -21,14 +21,6 @@ import (
 const (
 	version       = "dev"
 	connectorName = "baton-freshservice"
-	apiKey        = "api-key"
-	domain        = "domain"
-)
-
-var (
-	apiKeyField         = field.StringField(apiKey, field.WithRequired(true), field.WithDescription("The api key for your account."))
-	domainField         = field.StringField(domain, field.WithRequired(true), field.WithDescription("The domain for your account."))
-	configurationFields = []field.SchemaField{apiKeyField, domainField}
 )
 
 func main() {
@@ -36,7 +28,7 @@ func main() {
 	_, cmd, err := configSchema.DefineConfiguration(ctx,
 		connectorName,
 		getConnector,
-		field.NewConfiguration(configurationFields),
+		field.NewConfiguration(configurationFields, configRelations...),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -58,20 +50,20 @@ func extractSubdomain(input string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("invalid domain URL: %w", err)
 		}
-		parts := strings.Split(parsedURL.Hostname(), ".")
-		if len(parts) > 0 {
-			return parts[0], nil
-		}
+		input = parsedURL.Hostname()
 	}
-	return input, nil
+	parts := strings.Split(input, ".")
+	if len(parts) > 0 {
+		return parts[0], nil
+	}
+	return "", nil
 }
 
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
-	var (
-		fsClient = client.NewClient()
-		fsToken  = cfg.GetString(apiKey)
-		fsDomain = cfg.GetString(domain)
-	)
+	fsClient := client.NewClient()
+	fsToken := cfg.GetString(apiKey)
+	fsDomain := cfg.GetString(domain)
+
 	l := ctxzap.Extract(ctx)
 	subdomain, err := extractSubdomain(fsDomain)
 	if err != nil {
@@ -82,12 +74,12 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 
 	// Validate the subdomain format
 	if strings.Contains(fsDomain, ".") || strings.Contains(fsDomain, "/") || fsDomain == "" {
-		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshdesk.com')", fsDomain)
+		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshservice.com')", fsDomain)
 	}
 
-	if fsToken != "" && fsDomain != "" {
-		fsClient.WithBearerToken(fsToken).WithDomain(fsDomain)
-	}
+	categoryId := cfg.GetString(categoryField.FieldName)
+
+	fsClient = fsClient.WithBearerToken(fsToken).WithDomain(fsDomain).WithCategoryID(categoryId)
 
 	cb, err := connector.New(ctx,
 		fsToken,
@@ -99,7 +91,12 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 		return nil, err
 	}
 
-	c, err := connectorbuilder.NewConnector(ctx, cb)
+	opts := make([]connectorbuilder.Opt, 0)
+	if cfg.GetBool(field.TicketingField.FieldName) {
+		opts = append(opts, connectorbuilder.WithTicketingEnabled())
+	}
+
+	c, err := connectorbuilder.NewConnector(ctx, cb, opts...)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err

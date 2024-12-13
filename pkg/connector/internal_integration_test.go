@@ -37,8 +37,8 @@ func TestUsersBuilderList(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	u := &userBuilder{
-		resourceType: userResourceType,
+	u := &agentUserBuilder{
+		resourceType: agentUserResourceType,
 		client:       cliTest,
 	}
 	var token = "{}"
@@ -60,7 +60,7 @@ func TestGroupsBuilderList(t *testing.T) {
 	require.Nil(t, err)
 
 	g := &groupBuilder{
-		resourceType: groupResourceType,
+		resourceType: agentGroupResourceType,
 		client:       cliTest,
 	}
 	var token = "{}"
@@ -167,7 +167,7 @@ func getGroupForTesting(ctxTest context.Context, id string, name, description st
 		return nil, err
 	}
 
-	return groupResource(ctxTest, &client.Group{
+	return agentGroupResource(ctxTest, &client.AgentGroup{
 		ID:          int64(num),
 		Name:        name,
 		Description: description,
@@ -176,7 +176,7 @@ func getGroupForTesting(ctxTest context.Context, id string, name, description st
 
 func getEntitlementForTesting(resource *v2.Resource, resourceDisplayName, entitlement string) *v2.Entitlement {
 	options := []ent.EntitlementOption{
-		ent.WithGrantableTo(userResourceType),
+		ent.WithGrantableTo(agentUserResourceType),
 		ent.WithDisplayName(fmt.Sprintf("%s resource %s", resourceDisplayName, entitlement)),
 		ent.WithDescription(fmt.Sprintf("%s of %s freshservice", entitlement, resourceDisplayName)),
 	}
@@ -193,11 +193,11 @@ func TestGroupGrants(t *testing.T) {
 	require.Nil(t, err)
 
 	d := &groupBuilder{
-		resourceType: groupResourceType,
+		resourceType: agentGroupResourceType,
 		client:       cliTest,
 	}
 	_, _, _, err = d.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000063690"},
+		Id: &v2.ResourceId{ResourceType: agentGroupResourceType.Id, Resource: "33000063690"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -215,7 +215,7 @@ func TestRequesterGroupGrants(t *testing.T) {
 		client:       cliTest,
 	}
 	_, _, _, err = rg.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000015150"},
+		Id: &v2.ResourceId{ResourceType: agentGroupResourceType.Id, Resource: "33000015150"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -247,7 +247,7 @@ func TestGroupGrant(t *testing.T) {
 	}
 	_, err = g.Grant(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: agentUserResourceType.Id,
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
@@ -264,7 +264,7 @@ func TestGroupRevoke(t *testing.T) {
 
 	grantId := "group:33000063690:member:user:33000161832"
 	data := strings.Split(grantId, ":")
-	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	principalID := &v2.ResourceId{ResourceType: agentUserResourceType.Id, Resource: data[4]}
 	resource, err := getGroupForTesting(ctxTest, data[1], "local_group", "test")
 	require.Nil(t, err)
 
@@ -306,7 +306,7 @@ func TestRoleGrant(t *testing.T) {
 	}
 	_, err = r.Grant(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: agentUserResourceType.Id,
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
@@ -323,7 +323,7 @@ func TestRoleRevoke(t *testing.T) {
 
 	grantId := "role:33000064223:assigned:user:33000161901"
 	data := strings.Split(grantId, ":")
-	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	principalID := &v2.ResourceId{ResourceType: agentUserResourceType.Id, Resource: data[4]}
 	resource, err := getRoleForTesting(ctxTest, data[1], "role_agent", "test")
 	require.Nil(t, err)
 
@@ -359,12 +359,12 @@ func TestUserGrants(t *testing.T) {
 	cliTest, err := getClientForTesting(ctxTest)
 	require.Nil(t, err)
 
-	u := &userBuilder{
-		resourceType: userResourceType,
+	u := &agentUserBuilder{
+		resourceType: agentUserResourceType,
 		client:       cliTest,
 	}
 	_, _, _, err = u.Grants(ctxTest, &v2.Resource{
-		Id: &v2.ResourceId{ResourceType: groupResourceType.Id, Resource: "33000161861"},
+		Id: &v2.ResourceId{ResourceType: agentGroupResourceType.Id, Resource: "33000161861"},
 	}, &pagination.Token{})
 	require.Nil(t, err)
 }
@@ -396,7 +396,7 @@ func TestRequesterGroupGrant(t *testing.T) {
 	}
 	_, err = rg.Grant(ctxTest, &v2.Resource{
 		Id: &v2.ResourceId{
-			ResourceType: userResourceType.Id,
+			ResourceType: agentUserResourceType.Id,
 			Resource:     grantPrincipal,
 		},
 	}, entitlement)
@@ -413,7 +413,7 @@ func TestRequesterGroupRevoke(t *testing.T) {
 
 	grantId := "requester_group:33000015201:member:user:33000161840"
 	data := strings.Split(grantId, ":")
-	principalID := &v2.ResourceId{ResourceType: userResourceType.Id, Resource: data[4]}
+	principalID := &v2.ResourceId{ResourceType: agentUserResourceType.Id, Resource: data[4]}
 	resource, err := getGroupForTesting(ctxTest, data[1], "HR Team", "test")
 	require.Nil(t, err)
 

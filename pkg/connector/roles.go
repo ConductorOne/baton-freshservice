@@ -32,8 +32,8 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, err
 	}
 
-	roles, nextPageToken, annotation, err := r.client.ListAllRoles(ctx, client.PageOptions{
-		PerPage: ITEMSPERPAGE,
+	roles, nextPageToken, annotation, err := r.client.ListRoles(ctx, client.PageOptions{
+		PerPage: pToken.Size,
 		Page:    pageToken,
 	})
 	if err != nil {
@@ -65,7 +65,7 @@ func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
 	assigmentOptions := []ent.EntitlementOption{
-		ent.WithGrantableTo(userResourceType),
+		ent.WithGrantableTo(agentUserResourceType),
 		ent.WithDescription(fmt.Sprintf("Assigned to %s role", resource.DisplayName)),
 		ent.WithDisplayName(fmt.Sprintf("%s role %s", resource.DisplayName, assignedEntitlement)),
 	}
@@ -80,7 +80,7 @@ func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 
 func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != agentUserResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only users can be granted role membership",
 			zap.String("principal_type", principal.Id.ResourceType),
@@ -91,7 +91,7 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	roleId := entitlement.Resource.Id.Resource
 	userId := principal.Id.Resource
-	roles, annotation, err := r.client.GetAgentDetail(ctx, userId)
+	roles, _, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -101,21 +101,21 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		return nil, err
 	}
 
-	var bodyRoles []client.BodyRole
+	var bodyRoles []client.AgentRole
 	for _, role := range roles.Agent.Roles {
-		bodyRoles = append(bodyRoles, client.BodyRole{
+		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
 			AssignmentScope: "assigned_items",
 		})
 	}
 
 	// Adding new role
-	bodyRoles = append(bodyRoles, client.BodyRole{
+	bodyRoles = append(bodyRoles, client.AgentRole{
 		RoleID:          roleId64,
 		AssignmentScope: "assigned_items",
 	})
 
-	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	annotation, err := r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	l := ctxzap.Extract(ctx)
 	principal := grant.Principal
 	entitlement := grant.Entitlement
-	if principal.Id.ResourceType != userResourceType.Id {
+	if principal.Id.ResourceType != agentUserResourceType.Id {
 		l.Warn(
 			"freshservice-connector: only users can have role membership revoked",
 			zap.String("principal_type", principal.Id.ResourceType),
@@ -138,7 +138,7 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 	userId := principal.Id.Resource
 	roleId := entitlement.Resource.Id.Resource
-	roles, annotation, err := r.client.GetAgentDetail(ctx, userId)
+	roles, _, err := r.client.GetAgentDetail(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -148,19 +148,19 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		return nil, err
 	}
 
-	var bodyRoles []client.BodyRole
+	var bodyRoles []client.AgentRole
 	for _, role := range roles.Agent.Roles {
 		if roleId64 == role.RoleID {
 			continue
 		}
 
-		bodyRoles = append(bodyRoles, client.BodyRole{
+		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
 			AssignmentScope: "assigned_items",
 		})
 	}
 
-	err = r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
+	annotation, err := r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
 	if err != nil {
 		return nil, err
 	}

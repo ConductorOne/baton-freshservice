@@ -2,8 +2,8 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -11,7 +11,7 @@ import (
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 )
 
-func userResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func requesterUserResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
@@ -19,7 +19,7 @@ func userResource(ctx context.Context, user *client.Requesters, parentResourceID
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"email":      user.PrimaryEmail,
-		"is_agent":   user.IsAgent,
+		"is_agent":   false,
 	}
 
 	switch user.Active {
@@ -36,14 +36,57 @@ func userResource(ctx context.Context, user *client.Requesters, parentResourceID
 		rs.WithEmail(user.PrimaryEmail, true),
 	}
 
-	displayName := user.FirstName + " " + user.LastName
-	if user.FirstName == "" {
+	displayName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+	if displayName == "" {
 		displayName = user.PrimaryEmail
 	}
 
 	ret, err := rs.NewUserResource(
 		displayName,
-		userResourceType,
+		requesterResourceType,
+		user.ID,
+		userTraits,
+		rs.WithParentResourceID(parentResourceID))
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
+func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
+	profile := map[string]interface{}{
+		"user_id":    user.ID,
+		"login":      user.Email,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"email":      user.Email,
+		"is_agent":   true,
+	}
+
+	switch user.Active {
+	case true:
+		userStatus = v2.UserTrait_Status_STATUS_ENABLED
+	case false:
+		userStatus = v2.UserTrait_Status_STATUS_DISABLED
+	}
+
+	userTraits := []rs.UserTraitOption{
+		rs.WithUserProfile(profile),
+		rs.WithStatus(userStatus),
+		rs.WithUserLogin(user.Email),
+		rs.WithEmail(user.Email, true),
+	}
+
+	displayName := strings.TrimSpace(user.FirstName + " " + user.LastName)
+	if displayName == "" {
+		displayName = user.Email
+	}
+
+	ret, err := rs.NewUserResource(
+		displayName,
+		agentUserResourceType,
 		user.ID,
 		userTraits,
 		rs.WithParentResourceID(parentResourceID))
@@ -55,16 +98,15 @@ func userResource(ctx context.Context, user *client.Requesters, parentResourceID
 }
 
 // Create a new connector resource for FreshService.
-func groupResource(ctx context.Context, group *client.Group, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+func agentGroupResource(ctx context.Context, group *client.AgentGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"group_id":   group.ID,
 		"group_name": group.Name,
-		"group_type": group.Type,
 	}
 	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
 	resource, err := rs.NewGroupResource(
 		group.Name,
-		groupResourceType,
+		agentGroupResourceType,
 		group.ID,
 		groupTraitOptions,
 		rs.WithParentResourceID(parentResourceID),
@@ -92,6 +134,13 @@ func unmarshalSkipToken(token *pagination.Token) (int32, *pagination.Bag, error)
 		skip = int32(skip64)
 	}
 	return skip, b, nil
+}
+
+func ConvertPageToken(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+	return strconv.Atoi(token)
 }
 
 func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
@@ -135,20 +184,6 @@ func getToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*paginat
 	}
 
 	return bag, pageToken, nil
-}
-
-func isAgent(resource *v2.Resource) (bool, error) {
-	userTrait, err := rs.GetUserTrait(resource)
-	if err != nil {
-		return false, err
-	}
-
-	field, ok := userTrait.Profile.Fields["is_agent"]
-	if !ok {
-		return false, fmt.Errorf("field is_agent could not be found")
-	}
-
-	return field.GetBoolValue(), nil
 }
 
 func requesterGroupResource(ctx context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
