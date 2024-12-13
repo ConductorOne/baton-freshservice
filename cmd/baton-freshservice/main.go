@@ -21,20 +21,7 @@ import (
 const (
 	version       = "dev"
 	connectorName = "baton-freshservice"
-	apiKey        = "api-key"
-	domain        = "domain"
 )
-
-var (
-	apiKeyField         = field.StringField(apiKey, field.WithRequired(true), field.WithDescription("The api key for your account."))
-	domainField         = field.StringField(domain, field.WithRequired(true), field.WithDescription("The domain for your account."))
-	categoryField       = field.StringField("category-id", field.WithDescription("The category id to filter service items to"))
-	configurationFields = []field.SchemaField{apiKeyField, domainField, categoryField}
-)
-
-var configRelations = []field.SchemaFieldRelationship{
-	field.FieldsDependentOn([]field.SchemaField{categoryField}, []field.SchemaField{field.ListTicketSchemasField}),
-}
 
 func main() {
 	ctx := context.Background()
@@ -63,12 +50,13 @@ func extractSubdomain(input string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("invalid domain URL: %w", err)
 		}
-		parts := strings.Split(parsedURL.Hostname(), ".")
-		if len(parts) > 0 {
-			return parts[0], nil
-		}
+		input = parsedURL.Hostname()
 	}
-	return input, nil
+	parts := strings.Split(input, ".")
+	if len(parts) > 0 {
+		return parts[0], nil
+	}
+	return "", nil
 }
 
 func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
