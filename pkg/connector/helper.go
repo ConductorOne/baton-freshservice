@@ -77,6 +77,7 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 		rs.WithStatus(userStatus),
 		rs.WithUserLogin(user.Email),
 		rs.WithEmail(user.Email, true),
+		rs.WithLastLogin(user.LastLoginAt),
 	}
 
 	displayName := strings.TrimSpace(user.FirstName + " " + user.LastName)
