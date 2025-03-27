@@ -13,13 +13,14 @@ type AgentsAPIData struct {
 }
 
 type Agent struct {
-	Active    bool        `json:"active,omitempty"`
-	Address   string      `json:"address,omitempty"`
-	Email     string      `json:"email,omitempty"`
-	FirstName string      `json:"first_name,omitempty"`
-	ID        int64       `json:"id,omitempty"`
-	LastName  string      `json:"last_name,omitempty"`
-	Roles     []AgentRole `json:"roles,omitempty"`
+	Active      bool        `json:"active,omitempty"`
+	Address     string      `json:"address,omitempty"`
+	Email       string      `json:"email,omitempty"`
+	FirstName   string      `json:"first_name,omitempty"`
+	ID          int64       `json:"id,omitempty"`
+	LastName    string      `json:"last_name,omitempty"`
+	Roles       []AgentRole `json:"roles,omitempty"`
+	LastLoginAt time.Time   `json:"last_login_at,omitempty"`
 }
 
 type AgentDetailAPIData struct {
