@@ -28,6 +28,14 @@ type FreshServiceClient struct {
 	categoryId string
 }
 
+type errorResponse struct {
+	MessageContent string `json:"message"`
+}
+
+func (er *errorResponse) Message() string {
+	return fmt.Sprintf("Error: %s", er.MessageContent)
+}
+
 func NewClient() *FreshServiceClient {
 	return &FreshServiceClient{
 		httpClient: &uhttp.BaseHttpClient{},
@@ -295,7 +303,9 @@ func (f *FreshServiceClient) doRequest(
 
 	switch method {
 	case http.MethodGet, http.MethodPut, http.MethodPost:
-		resp, err = f.httpClient.Do(req)
+		var errRes errorResponse
+
+		resp, err = f.httpClient.Do(req, uhttp.WithErrorResponse(&errRes))
 		if resp != nil {
 			defer resp.Body.Close()
 		}
