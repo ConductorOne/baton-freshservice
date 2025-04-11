@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -293,11 +295,7 @@ func (f *FreshServiceClient) doRequest(
 
 	switch method {
 	case http.MethodGet, http.MethodPut, http.MethodPost:
-		doOptions := []uhttp.DoOption{}
-		if res != nil {
-			doOptions = append(doOptions, uhttp.WithResponse(&res))
-		}
-		resp, err = f.httpClient.Do(req, doOptions...)
+		resp, err = f.httpClient.Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
 		}
@@ -310,6 +308,18 @@ func (f *FreshServiceClient) doRequest(
 
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if res != nil {
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal(responseBody, &res)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	rateLimitData, err := extractRateLimitData(resp)
