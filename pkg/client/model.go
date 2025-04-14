@@ -28,9 +28,9 @@ type AgentDetailAPIData struct {
 }
 
 type AgentRole struct {
-	RoleID          int64    `json:"role_id,omitempty"`
-	AssignmentScope string   `json:"assignment_scope,omitempty"`
-	Groups          []string `json:"groups,omitempty"`
+	RoleID          int64   `json:"role_id,omitempty"`
+	AssignmentScope string  `json:"assignment_scope,omitempty"`
+	Groups          []int64 `json:"groups,omitempty"`
 }
 
 type RolesAPIData struct {
