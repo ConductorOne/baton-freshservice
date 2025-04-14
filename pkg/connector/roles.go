@@ -105,14 +105,15 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	for _, role := range roles.Agent.Roles {
 		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
-			AssignmentScope: "assigned_items",
+			AssignmentScope: role.AssignmentScope,
+			Groups:          role.Groups,
 		})
 	}
 
-	// Adding new role
+	// Adding new role. "member_groups" is setted as the Assignment scope since it make the role valid only for the Agent groups.
 	bodyRoles = append(bodyRoles, client.AgentRole{
 		RoleID:          roleId64,
-		AssignmentScope: "assigned_items",
+		AssignmentScope: "member_groups",
 	})
 
 	annotation, err := r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
@@ -156,7 +157,8 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
-			AssignmentScope: "assigned_items",
+			AssignmentScope: role.AssignmentScope,
+			Groups:          role.Groups,
 		})
 	}
 
