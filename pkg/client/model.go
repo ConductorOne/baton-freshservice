@@ -53,7 +53,7 @@ type AgentGroup struct {
 	ID          int64   `json:"id,omitempty"`
 	Name        string  `json:"name,omitempty"`
 	Description string  `json:"description,omitempty"`
-	Members     []int64 `json:"members,omitempty"`
+	Members     []int64 `json:"members"`
 }
 
 type AgentGroupDetailAPIData struct {

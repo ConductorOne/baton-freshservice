@@ -241,7 +241,9 @@ func (f *FreshServiceClient) UpdateAgentGroupMembers(ctx context.Context, groupI
 		return nil, err
 	}
 
-	body := &AgentGroup{Members: usersId}
+	body := &AgentGroup{
+		Members: usersId,
+	}
 	_, annotation, err := f.doRequest(ctx, http.MethodPut, groupUrl, nil, body)
 	if err != nil {
 		return nil, err
