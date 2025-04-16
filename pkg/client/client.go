@@ -36,6 +36,14 @@ func NewClient() *FreshServiceClient {
 	}
 }
 
+type errorResponse struct {
+	MessageContent string `json:"message"`
+}
+
+func (er *errorResponse) Message() string {
+	return fmt.Sprintf("Error: %s", er.MessageContent)
+}
+
 func (f *FreshServiceClient) WithBearerToken(apiToken string) *FreshServiceClient {
 	f.auth.bearerToken = apiToken
 	return f
@@ -233,7 +241,9 @@ func (f *FreshServiceClient) UpdateAgentGroupMembers(ctx context.Context, groupI
 		return nil, err
 	}
 
-	body := &AgentGroup{Members: usersId}
+	body := &AgentGroup{
+		Members: usersId,
+	}
 	_, annotation, err := f.doRequest(ctx, http.MethodPut, groupUrl, nil, body)
 	if err != nil {
 		return nil, err
@@ -293,10 +303,13 @@ func (f *FreshServiceClient) doRequest(
 
 	switch method {
 	case http.MethodGet, http.MethodPut, http.MethodPost:
-		doOptions := []uhttp.DoOption{}
+		var errRes errorResponse
+		doOptions := []uhttp.DoOption{uhttp.WithErrorResponse(&errRes)}
+
 		if res != nil {
 			doOptions = append(doOptions, uhttp.WithResponse(&res))
 		}
+
 		resp, err = f.httpClient.Do(req, doOptions...)
 		if resp != nil {
 			defer resp.Body.Close()

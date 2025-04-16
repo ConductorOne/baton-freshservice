@@ -124,7 +124,11 @@ func (g *groupBuilder) Grant(ctx context.Context, principal *v2.Resource, entitl
 	}
 
 	groupDetail.Group.Members = append(groupDetail.Group.Members, user)
-	_, err = g.client.UpdateAgentGroupMembers(ctx, groupId, groupDetail.Group.Members)
+
+	_, err = g.client.UpdateAgentGroupMembers(ctx,
+		groupId,
+		groupDetail.Group.Members,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +162,7 @@ func (g *groupBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations
 		return nil, err
 	}
 
-	var members []int64
+	members := []int64{}
 	for _, member := range groupDetail.Group.Members {
 		if member == user {
 			continue

@@ -52,8 +52,8 @@ jobs:
         run: go build ./cmd/baton-freshservice
       - name: Run baton-freshservice
         env:
-          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: 'conductoronehelpdesk'
+          BATON_API_KEY: ${{ secrets.FRESHSERVICE_APIKEY }}
+          BATON_DOMAIN: ${{ secrets.FRESHSERVICE_DOMAIN }}
           BATON_DISABLE_HTTP_CACHE: true
         run: ./baton-freshservice
       - name: Checkout baton
@@ -69,21 +69,21 @@ jobs:
         env:
           BATON: ./baton/baton
           BATON_FRESHSERVICE: ./baton-freshservice
-          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: 'conductoronehelpdesk'
-          BATON_GRANT: 'group:33000063487:member:user:33000161832'
-          BATON_ENTITLEMENT: 'group:33000063487:member'
-          BATON_PRINCIPAL_TYPE: 'user'
-          BATON_PRINCIPAL: '33000161832'
+          BATON_API_KEY: ${{ secrets.FRESHSERVICE_APIKEY }}
+          BATON_DOMAIN: ${{ secrets.FRESHSERVICE_DOMAIN }}
+          BATON_GRANT: 'agent_group:34000149590:member:user:34001065377'
+          BATON_ENTITLEMENT: 'agent_group:34000149590:member'
+          BATON_PRINCIPAL_TYPE: 'agent'
+          BATON_PRINCIPAL: '34001065377'
         run: ./test/grant-revoke.sh
       - name: Test grant/revoking roles
         env:
           BATON: ./baton/baton
           BATON_FRESHSERVICE: ./baton-freshservice
-          BATON_API_KEY: ${{ secrets.BATON_API_KEY }}
-          BATON_DOMAIN: 'conductoronehelpdesk'
-          BATON_GRANT: 'role:33000064223:assigned:user:33000161901'
-          BATON_ENTITLEMENT: 'role:33000064223:assigned'
-          BATON_PRINCIPAL_TYPE: 'user'
-          BATON_PRINCIPAL: '33000161901'
+          BATON_API_KEY: ${{ secrets.FRESHSERVICE_APIKEY }}
+          BATON_DOMAIN: ${{ secrets.FRESHSERVICE_DOMAIN }}
+          BATON_GRANT: 'role:34000148117:assigned:agent:34001065377'
+          BATON_ENTITLEMENT: 'role:34000148117:assigned'
+          BATON_PRINCIPAL_TYPE: 'agent'
+          BATON_PRINCIPAL: '34001065377'
         run: ./test/grant-revoke.sh

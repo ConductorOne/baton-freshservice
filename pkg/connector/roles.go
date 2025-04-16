@@ -21,11 +21,11 @@ type roleBuilder struct {
 
 const assignedEntitlement = "assigned"
 
-func (r *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
+func (r *roleBuilder) ResourceType(_ context.Context) *v2.ResourceType {
 	return resourceTypeRole
 }
 
-func (r *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (r *roleBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	var rv []*v2.Resource
 	bag, pageToken, err := getToken(pToken, resourceTypeRole)
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 	return rv, "", nil, nil
 }
 
-func (r *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (r *roleBuilder) Grants(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	return nil, "", nil, nil
 }
 
@@ -105,14 +105,15 @@ func (r *roleBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	for _, role := range roles.Agent.Roles {
 		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
-			AssignmentScope: "assigned_items",
+			AssignmentScope: role.AssignmentScope,
+			Groups:          role.Groups,
 		})
 	}
 
-	// Adding new role
+	// Adding new role. "member_groups" is setted as the Assignment scope since it make the role valid only for the Agent groups.
 	bodyRoles = append(bodyRoles, client.AgentRole{
 		RoleID:          roleId64,
-		AssignmentScope: "assigned_items",
+		AssignmentScope: "member_groups",
 	})
 
 	annotation, err := r.client.UpdateAgentRoles(ctx, bodyRoles, userId)
@@ -156,7 +157,8 @@ func (r *roleBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 		bodyRoles = append(bodyRoles, client.AgentRole{
 			RoleID:          role.RoleID,
-			AssignmentScope: "assigned_items",
+			AssignmentScope: role.AssignmentScope,
+			Groups:          role.Groups,
 		})
 	}
 

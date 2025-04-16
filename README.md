@@ -2,7 +2,7 @@
 
 # `baton-freshservice` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-freshservice.svg)](https://pkg.go.dev/github.com/conductorone/baton-freshservice) ![main ci](https://github.com/conductorone/baton-freshservice/actions/workflows/main.yaml/badge.svg)
 
-`baton-freshservice` is a connector for built using the [Baton SDK](https://github.com/conductorone/baton-sdk).
+`baton-freshservice` is a connector for [Freshservice](https://www.freshworks.com/freshservice/) built using the [Baton SDK](https://github.com/conductorone/baton-sdk).
 
 Check out [Baton](https://github.com/conductorone/baton) to learn more the project in general.
 
@@ -28,6 +28,13 @@ https://solutions.freshservice.com -> solutions
 2.- Click on profile settings.
 
 3.- Complete the CAPTCHA to access your API key.
+
+NOTE: if you can't see your API Key there, you should enable it for your user. For that:
+1.- While using an admin account, go to Admin Settings (gear icon on the bottom left).
+2.- Go to 'Agents' under the 'User Management' section.
+3.- Search for the Agent (user) that you want to enable the API Key for, and click on it. A more detailed view should be loaded. (don't click edit, click on the users name)
+4.- Go to the 'Permissions' tab.
+5.- Enable the Api Key.
 
 ## brew
 
