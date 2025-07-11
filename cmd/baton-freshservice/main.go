@@ -8,13 +8,12 @@ import (
 	"strings"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
+	"github.com/conductorone/baton-freshservice/pkg/config"
 	"github.com/conductorone/baton-freshservice/pkg/connector"
 	configSchema "github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -28,7 +27,7 @@ func main() {
 	_, cmd, err := configSchema.DefineConfiguration(ctx,
 		connectorName,
 		getConnector,
-		field.NewConfiguration(configurationFields, configRelations...),
+		config.Config,
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -59,30 +58,25 @@ func extractSubdomain(input string) (string, error) {
 	return "", nil
 }
 
-func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer, error) {
+func getConnector(ctx context.Context, cfg *config.Freshservice) (types.ConnectorServer, error) {
 	fsClient := client.NewClient()
-	fsToken := cfg.GetString(apiKey)
-	fsDomain := cfg.GetString(domain)
 
 	l := ctxzap.Extract(ctx)
-	subdomain, err := extractSubdomain(fsDomain)
+	fsDomain, err := extractSubdomain(cfg.Domain)
 	if err != nil {
 		l.Error("error extracting subdomain", zap.Error(err))
 		return nil, err
 	}
-	fsDomain = subdomain
 
 	// Validate the subdomain format
 	if strings.Contains(fsDomain, ".") || strings.Contains(fsDomain, "/") || fsDomain == "" {
 		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshservice.com')", fsDomain)
 	}
 
-	categoryId := cfg.GetString(categoryField.FieldName)
-
-	fsClient = fsClient.WithBearerToken(fsToken).WithDomain(fsDomain).WithCategoryID(categoryId)
+	fsClient = fsClient.WithBearerToken(cfg.ApiKey).WithDomain(fsDomain).WithCategoryID(cfg.CategoryId)
 
 	cb, err := connector.New(ctx,
-		fsToken,
+		cfg.ApiKey,
 		fsDomain,
 		fsClient,
 	)
@@ -92,7 +86,7 @@ func getConnector(ctx context.Context, cfg *viper.Viper) (types.ConnectorServer,
 	}
 
 	opts := make([]connectorbuilder.Opt, 0)
-	if cfg.GetBool(field.TicketingField.FieldName) {
+	if cfg.Ticketing {
 		opts = append(opts, connectorbuilder.WithTicketingEnabled())
 	}
 
