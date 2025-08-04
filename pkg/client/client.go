@@ -95,9 +95,7 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return nil, err
 	}
 
-	cli, err := uhttp.NewBaseHttpClientWithContext(context.Background(),
-		httpClient,
-	)
+	cli, err := uhttp.NewBaseHttpClientWithContext(ctx, httpClient)
 	if err != nil {
 		return freshServiceClient, err
 	}
