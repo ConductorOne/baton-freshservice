@@ -562,6 +562,8 @@ func (f *FreshServiceClient) ListServiceCatalogItems(ctx context.Context, opts P
 	l := ctxzap.Extract(ctx)
 	l.Info("fresh-service list service catalog items", zap.Int("items", len(res.ServiceItems)))
 
+	l.Info("fresh-service items", zap.Any("items", res.ServiceItems))
+
 	return res, annos, nextPage, nil
 }
 
