@@ -13,6 +13,7 @@ import (
 	configSchema "github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -59,7 +60,14 @@ func extractSubdomain(input string) (string, error) {
 }
 
 func getConnector(ctx context.Context, cfg *config.Freshservice) (types.ConnectorServer, error) {
-	fsClient := client.NewClient()
+	options := []uhttp.Option{uhttp.WithLogger(true, ctxzap.Extract(ctx))}
+
+	httpClient, err := uhttp.NewClient(ctx, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating HTTP client failed: %w", err)
+	}
+	wrapper := uhttp.NewBaseHttpClient(httpClient)
+	fsClient := client.NewClient(wrapper)
 
 	l := ctxzap.Extract(ctx)
 	fsDomain, err := extractSubdomain(cfg.Domain)

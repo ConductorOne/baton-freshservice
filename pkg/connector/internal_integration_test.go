@@ -13,6 +13,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +26,13 @@ var (
 )
 
 func getClientForTesting(ctx context.Context) (*client.FreshServiceClient, error) {
-	fsClient := client.NewClient()
+	options := []uhttp.Option{uhttp.WithLogger(true, ctxzap.Extract(ctx))}
+	httpClient, err := uhttp.NewClient(ctx, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating HTTP client failed: %w", err)
+	}
+	wrapper := uhttp.NewBaseHttpClient(httpClient)
+	fsClient := client.NewClient(wrapper)
 	fsClient.WithBearerToken(apiKey).WithDomain(domain)
 	return client.New(ctx, fsClient)
 }
