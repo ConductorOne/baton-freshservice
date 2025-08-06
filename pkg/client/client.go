@@ -26,9 +26,9 @@ type FreshServiceClient struct {
 	categoryId string
 }
 
-func NewClient() *FreshServiceClient {
+func NewClient(baseClient *uhttp.BaseHttpClient) *FreshServiceClient {
 	return &FreshServiceClient{
-		httpClient: &uhttp.BaseHttpClient{},
+		httpClient: baseClient,
 		baseUrl:    "",
 		auth: &auth{
 			bearerToken: "",
