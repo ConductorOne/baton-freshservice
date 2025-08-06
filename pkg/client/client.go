@@ -15,6 +15,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/tomnomnom/linkheader"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -544,9 +545,9 @@ func (f *FreshServiceClient) ListServiceCatalogItems(ctx context.Context, opts P
 		WithPageLimit(opts.PerPage),
 	}
 
-	if f.GetCategoryID() != "" {
+	/*	if f.GetCategoryID() != "" {
 		reqOpts = append(reqOpts, WithQueryParam("category_id", f.GetCategoryID()))
-	}
+	}*/
 
 	var res *ServiceCatalogItemsListResponse
 	nextPage, annos, err := f.getListAPIData(ctx,
@@ -557,6 +558,9 @@ func (f *FreshServiceClient) ListServiceCatalogItems(ctx context.Context, opts P
 	if err != nil {
 		return nil, nil, "", err
 	}
+
+	l := ctxzap.Extract(ctx)
+	l.Info("fresh-service list service catalog items", zap.Int("items", len(res.ServiceItems)))
 
 	return res, annos, nextPage, nil
 }
