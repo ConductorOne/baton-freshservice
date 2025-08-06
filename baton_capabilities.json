@@ -1,84 +1,84 @@
 {
-  "@type": "type.googleapis.com/c1.connector.v2.ConnectorCapabilities",
-  "resourceTypeCapabilities": [
+  "@type":  "type.googleapis.com/c1.connector.v2.ConnectorCapabilities",
+  "resourceTypeCapabilities":  [
     {
-      "resourceType": {
-        "id": "agent",
-        "displayName": "Agent",
-        "traits": [
+      "resourceType":  {
+        "id":  "agent",
+        "displayName":  "Agent",
+        "traits":  [
           "TRAIT_USER"
         ],
-        "description": "Agent users of FreshService"
+        "description":  "Agent users of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
         "CAPABILITY_SYNC"
       ]
     },
     {
-      "resourceType": {
-        "id": "agent_group",
-        "displayName": "Agent Group",
-        "traits": [
+      "resourceType":  {
+        "id":  "agent_group",
+        "displayName":  "Agent Group",
+        "traits":  [
           "TRAIT_GROUP"
         ],
-        "description": "Agent groups of FreshService"
+        "description":  "Agent groups of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
       ]
     },
     {
-      "resourceType": {
-        "id": "requester",
-        "displayName": "Requester",
-        "traits": [
+      "resourceType":  {
+        "id":  "requester",
+        "displayName":  "Requester",
+        "traits":  [
           "TRAIT_USER"
         ],
-        "annotations": [
+        "annotations":  [
           {
-            "@type": "type.googleapis.com/c1.connector.v2.SkipEntitlementsAndGrants"
+            "@type":  "type.googleapis.com/c1.connector.v2.SkipEntitlementsAndGrants"
           }
         ],
-        "description": "Requester users of FreshService"
+        "description":  "Requester users of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
         "CAPABILITY_SYNC"
       ]
     },
     {
-      "resourceType": {
-        "id": "requester_group",
-        "displayName": "Requester Group",
-        "traits": [
+      "resourceType":  {
+        "id":  "requester_group",
+        "displayName":  "Requester Group",
+        "traits":  [
           "TRAIT_GROUP"
         ],
-        "description": "Requester groups of FreshService"
+        "description":  "Requester groups of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
       ]
     },
     {
-      "resourceType": {
-        "id": "role",
-        "displayName": "Role",
-        "traits": [
+      "resourceType":  {
+        "id":  "role",
+        "displayName":  "Role",
+        "traits":  [
           "TRAIT_ROLE"
         ],
-        "description": "Roles of FreshService"
+        "description":  "Roles of FreshService"
       },
-      "capabilities": [
+      "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
       ]
     }
   ],
-  "connectorCapabilities": [
+  "connectorCapabilities":  [
     "CAPABILITY_PROVISION",
     "CAPABILITY_SYNC",
     "CAPABILITY_TICKETING"
   ],
-  "credentialDetails": {}
+  "credentialDetails":  {}
 }
