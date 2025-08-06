@@ -32,12 +32,12 @@ func (c *Connector) ListTicketSchemas(ctx context.Context, pt *pagination.Token)
 		Page:    page,
 	})
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, fmt.Errorf("freshservice-connector: failed to list service catalog items: %w", err)
 	}
 
 	ticketStatuses, err := c.client.GetTicketStatuses(ctx)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, fmt.Errorf("freshservice-connector: failed to ticket statuses: %w", err)
 	}
 
 	for _, serviceItem := range serviceCatalogItems.ServiceItems {
