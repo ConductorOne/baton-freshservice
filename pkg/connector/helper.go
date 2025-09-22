@@ -12,7 +12,7 @@ import (
 )
 
 func requesterUserResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
+	userStatus := v2.UserTrait_Status_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
 		"login":      user.PrimaryEmail,
@@ -55,7 +55,7 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 }
 
 func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	var userStatus v2.UserTrait_Status_Status = v2.UserTrait_Status_STATUS_ENABLED
+	userStatus := v2.UserTrait_Status_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
 		"login":      user.Email,
