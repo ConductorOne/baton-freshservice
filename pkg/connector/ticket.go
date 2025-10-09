@@ -147,6 +147,9 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 		opt(createServiceCatalogRequestPayload)
 	}
 
+	l := ctxzap.Extract(ctx)
+	l.Debug("freshservice-connector: creating external ticket", zap.Any("payload", createServiceCatalogRequestPayload))
+
 	catalogItemID := schema.GetId()
 
 	serviceRequest, _, err := c.client.CreateServiceRequest(ctx, catalogItemID, createServiceCatalogRequestPayload)
