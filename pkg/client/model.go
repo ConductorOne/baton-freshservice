@@ -195,7 +195,7 @@ type ServiceRequestPayload struct {
 	RequestedFor string                 `json:"requested_for,omitempty"`
 	Email        string                 `json:"email"`
 	Quantity     int                    `json:"quantity"`
-	CustomFields map[string]interface{} `json:"custom_fields"`
+	CustomFields map[string]interface{} `json:"custom_fields,omitempty"`
 }
 
 type ServiceRequest struct {

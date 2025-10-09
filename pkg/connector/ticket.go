@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/conductorone/baton-freshservice/pkg/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -88,6 +89,16 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 		if val == nil {
 			continue
 		}
+		if cf.GetTimestampValue() != nil {
+			timeVal, ok := val.(*timestamppb.Timestamp)
+			if !ok {
+				return nil, nil, fmt.Errorf("error converting timestamp custom field '%s'", id)
+			}
+			t := timeVal.AsTime()
+			formattedTime := t.Format(time.RFC3339)
+			val = formattedTime
+		}
+
 		ticketOptions = append(ticketOptions, client.WithCustomField(cf.GetId(), val))
 	}
 
@@ -135,6 +146,9 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 	for _, opt := range ticketOptions {
 		opt(createServiceCatalogRequestPayload)
 	}
+
+	l := ctxzap.Extract(ctx)
+	l.Debug("freshservice-connector: creating external ticket", zap.Any("payload", createServiceCatalogRequestPayload))
 
 	catalogItemID := schema.GetId()
 
