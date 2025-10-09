@@ -85,20 +85,20 @@ func (c *Connector) CreateTicket(ctx context.Context, ticket *v2.Ticket, schema 
 		if err != nil {
 			return nil, nil, err
 		}
+		// The ticket doesn't have this key set, so we skip it
+		if val == nil {
+			continue
+		}
 		if cf.GetTimestampValue() != nil {
 			timeVal, ok := val.(*timestamppb.Timestamp)
 			if !ok {
-				return nil, nil, fmt.Errorf("error converting timestamp custom field '%s", id)
+				return nil, nil, fmt.Errorf("error converting timestamp custom field '%s'", id)
 			}
 			t := timeVal.AsTime()
 			formattedTime := t.Format(time.RFC3339)
 			val = formattedTime
 		}
 
-		// The ticket doesn't have this key set, so we skip it
-		if val == nil {
-			continue
-		}
 		ticketOptions = append(ticketOptions, client.WithCustomField(cf.GetId(), val))
 	}
 
