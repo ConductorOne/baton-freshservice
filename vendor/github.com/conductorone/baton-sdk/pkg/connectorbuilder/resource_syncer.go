@@ -50,9 +50,9 @@ type ResourceSyncerV2 interface {
 }
 
 type ResourceSyncerV2Limited interface {
-	List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token, opts resource.Options) ([]*v2.Resource, string, annotations.Annotations, error)
-	Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token, opts resource.Options) ([]*v2.Entitlement, string, annotations.Annotations, error)
-	Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token, opts resource.Options) ([]*v2.Grant, string, annotations.Annotations, error)
+	List(ctx context.Context, parentResourceID *v2.ResourceId, opts resource.SyncOpAttrs) ([]*v2.Resource, *resource.SyncOpResults, error)
+	Entitlements(ctx context.Context, resource *v2.Resource, opts resource.SyncOpAttrs) ([]*v2.Entitlement, *resource.SyncOpResults, error)
+	Grants(ctx context.Context, resource *v2.Resource, opts resource.SyncOpAttrs) ([]*v2.Grant, *resource.SyncOpResults, error)
 }
 
 // ResourceTargetedSyncer extends ResourceSyncer to add capabilities for directly syncing an individual resource
@@ -95,7 +95,7 @@ func (b *builder) ListResourceTypes(
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.ResourceTypesServiceListResourceTypesResponse{List: out}, nil
+	return v2.ResourceTypesServiceListResourceTypesResponse_builder{List: out}.Build(), nil
 }
 
 // ListResources returns all available resources for a given resource type ID.
@@ -105,26 +105,32 @@ func (b *builder) ListResources(ctx context.Context, request *v2.ResourcesServic
 
 	start := b.nowFunc()
 	tt := tasks.ListResourcesType
-	rb, ok := b.resourceSyncers[request.ResourceTypeId]
+	rb, ok := b.resourceSyncers[request.GetResourceTypeId()]
 	if !ok {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, fmt.Errorf("error: list resources with unknown resource type %s", request.ResourceTypeId)
+		return nil, fmt.Errorf("error: list resources with unknown resource type %s", request.GetResourceTypeId())
 	}
-	out, nextPageToken, annos, err := rb.List(ctx, request.ParentResourceId, &pagination.Token{
-		Size:  int(request.PageSize),
-		Token: request.PageToken,
-	}, resource.Options{})
 
-	resp := &v2.ResourcesServiceListResourcesResponse{
-		List:          out,
-		NextPageToken: nextPageToken,
-		Annotations:   annos,
+	token := pagination.Token{
+		Size:  int(request.GetPageSize()),
+		Token: request.GetPageToken(),
 	}
+	opts := resource.SyncOpAttrs{SyncID: request.GetActiveSyncId(), PageToken: token, Session: WithSyncId(b.sessionStore, request.GetActiveSyncId())}
+	out, retOptions, err := rb.List(ctx, request.GetParentResourceId(), opts)
+	if retOptions == nil {
+		retOptions = &resource.SyncOpResults{}
+	}
+
+	resp := v2.ResourcesServiceListResourcesResponse_builder{
+		List:          out,
+		NextPageToken: retOptions.NextPageToken,
+		Annotations:   retOptions.Annotations,
+	}.Build()
 	if err != nil {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return resp, fmt.Errorf("error: listing resources failed: %w", err)
 	}
-	if request.PageToken != "" && request.PageToken == nextPageToken {
+	if request.GetPageToken() != "" && request.GetPageToken() == retOptions.NextPageToken {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return resp, fmt.Errorf("error: listing resources failed: next page token is the same as the current page token. this is most likely a connector bug")
 	}
@@ -156,10 +162,10 @@ func (b *builder) GetResource(ctx context.Context, request *v2.ResourceGetterSer
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.ResourceGetterServiceGetResourceResponse{
+	return v2.ResourceGetterServiceGetResourceResponse_builder{
 		Resource:    resource,
 		Annotations: annos,
-	}, nil
+	}.Build(), nil
 }
 
 // ListEntitlements returns all the entitlements for a given resource.
@@ -169,27 +175,31 @@ func (b *builder) ListEntitlements(ctx context.Context, request *v2.Entitlements
 
 	start := b.nowFunc()
 	tt := tasks.ListEntitlementsType
-	rb, ok := b.resourceSyncers[request.Resource.Id.ResourceType]
+	rb, ok := b.resourceSyncers[request.GetResource().GetId().GetResourceType()]
 	if !ok {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, fmt.Errorf("error: list entitlements with unknown resource type %s", request.Resource.Id.ResourceType)
+		return nil, fmt.Errorf("error: list entitlements with unknown resource type %s", request.GetResource().GetId().GetResourceType())
+	}
+	token := pagination.Token{
+		Size:  int(request.GetPageSize()),
+		Token: request.GetPageToken(),
+	}
+	opts := resource.SyncOpAttrs{SyncID: request.GetActiveSyncId(), PageToken: token, Session: WithSyncId(b.sessionStore, request.GetActiveSyncId())}
+	out, retOptions, err := rb.Entitlements(ctx, request.GetResource(), opts)
+	if retOptions == nil {
+		retOptions = &resource.SyncOpResults{}
 	}
 
-	out, nextPageToken, annos, err := rb.Entitlements(ctx, request.Resource, &pagination.Token{
-		Size:  int(request.PageSize),
-		Token: request.PageToken,
-	}, resource.Options{})
-
-	resp := &v2.EntitlementsServiceListEntitlementsResponse{
+	resp := v2.EntitlementsServiceListEntitlementsResponse_builder{
 		List:          out,
-		NextPageToken: nextPageToken,
-		Annotations:   annos,
-	}
+		NextPageToken: retOptions.NextPageToken,
+		Annotations:   retOptions.Annotations,
+	}.Build()
 	if err != nil {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return resp, fmt.Errorf("error: listing entitlements failed: %w", err)
 	}
-	if request.PageToken != "" && request.PageToken == nextPageToken {
+	if request.GetPageToken() != "" && request.GetPageToken() == retOptions.NextPageToken {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return resp, fmt.Errorf("error: listing entitlements failed: next page token is the same as the current page token. this is most likely a connector bug")
 	}
@@ -205,32 +215,38 @@ func (b *builder) ListGrants(ctx context.Context, request *v2.GrantsServiceListG
 
 	start := b.nowFunc()
 	tt := tasks.ListGrantsType
-	rid := request.Resource.Id
-	rb, ok := b.resourceSyncers[rid.ResourceType]
+	rid := request.GetResource().GetId()
+	rb, ok := b.resourceSyncers[rid.GetResourceType()]
 	if !ok {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, fmt.Errorf("error: list grants with unknown resource type %s", rid.ResourceType)
+		return nil, fmt.Errorf("error: list grants with unknown resource type %s", rid.GetResourceType())
 	}
 
-	out, nextPageToken, annos, err := rb.Grants(ctx, request.Resource, &pagination.Token{
-		Size:  int(request.PageSize),
-		Token: request.PageToken,
-	}, resource.Options{})
+	token := pagination.Token{
+		Size:  int(request.GetPageSize()),
+		Token: request.GetPageToken(),
+	}
+	opts := resource.SyncOpAttrs{SyncID: request.GetActiveSyncId(), PageToken: token, Session: WithSyncId(b.sessionStore, request.GetActiveSyncId())}
+	out, retOptions, err := rb.Grants(ctx, request.GetResource(), opts)
+	if retOptions == nil {
+		retOptions = &resource.SyncOpResults{}
+	}
 
-	resp := &v2.GrantsServiceListGrantsResponse{
+	resp := v2.GrantsServiceListGrantsResponse_builder{
 		List:          out,
-		NextPageToken: nextPageToken,
-		Annotations:   annos,
-	}
+		Annotations:   retOptions.Annotations,
+		NextPageToken: retOptions.NextPageToken,
+	}.Build()
+
 	if err != nil {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return resp, fmt.Errorf("error: listing grants for resource %s/%s failed: %w", rid.ResourceType, rid.Resource, err)
+		return resp, fmt.Errorf("error: listing grants for resource %s/%s failed: %w", rid.GetResourceType(), rid.GetResource(), err)
 	}
-	if request.PageToken != "" && request.PageToken == nextPageToken {
+	if request.GetPageToken() != "" && request.GetPageToken() == retOptions.NextPageToken {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return resp, fmt.Errorf("error: listing grants for resource %s/%s failed: next page token is the same as the current page token. this is most likely a connector bug",
-			rid.ResourceType,
-			rid.Resource)
+			rid.GetResourceType(),
+			rid.GetResource())
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
@@ -249,16 +265,22 @@ func (rw *resourceSyncerV1toV2) ResourceType(ctx context.Context) *v2.ResourceTy
 	return rw.rb.ResourceType(ctx)
 }
 
-func (rw *resourceSyncerV1toV2) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token, opts resource.Options) ([]*v2.Resource, string, annotations.Annotations, error) {
-	return rw.rb.List(ctx, parentResourceID, pToken)
+func (rw *resourceSyncerV1toV2) List(ctx context.Context, parentResourceID *v2.ResourceId, opts resource.SyncOpAttrs) ([]*v2.Resource, *resource.SyncOpResults, error) {
+	resources, pageToken, annos, err := rw.rb.List(ctx, parentResourceID, &opts.PageToken)
+	ret := &resource.SyncOpResults{NextPageToken: pageToken, Annotations: annos}
+	return resources, ret, err
 }
 
-func (rw *resourceSyncerV1toV2) Entitlements(ctx context.Context, resource *v2.Resource, pToken *pagination.Token, opts resource.Options) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return rw.rb.Entitlements(ctx, resource, pToken)
+func (rw *resourceSyncerV1toV2) Entitlements(ctx context.Context, r *v2.Resource, opts resource.SyncOpAttrs) ([]*v2.Entitlement, *resource.SyncOpResults, error) {
+	ents, pageToken, annos, err := rw.rb.Entitlements(ctx, r, &opts.PageToken)
+	ret := &resource.SyncOpResults{NextPageToken: pageToken, Annotations: annos}
+	return ents, ret, err
 }
 
-func (rw *resourceSyncerV1toV2) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token, opts resource.Options) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return rw.rb.Grants(ctx, resource, pToken)
+func (rw *resourceSyncerV1toV2) Grants(ctx context.Context, r *v2.Resource, opts resource.SyncOpAttrs) ([]*v2.Grant, *resource.SyncOpResults, error) {
+	grants, pageToken, annos, err := rw.rb.Grants(ctx, r, &opts.PageToken)
+	ret := &resource.SyncOpResults{NextPageToken: pageToken, Annotations: annos}
+	return grants, ret, err
 }
 
 func (b *builder) addTargetedSyncer(_ context.Context, typeId string, in interface{}) error {
