@@ -47,28 +47,29 @@ func (b *builder) RotateCredential(ctx context.Context, request *v2.RotateCreden
 	manager, ok := b.credentialManagers[rt]
 	if !ok {
 		l.Error("error: resource type does not have credential manager configured", zap.String("resource_type", rt))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, status.Error(codes.Unimplemented, "resource type does not have credential manager configured")
+		err := status.Error(codes.Unimplemented, "resource type does not have credential manager configured")
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
+		return nil, err
 	}
 
 	opts, err := crypto.ConvertCredentialOptions(ctx, b.clientSecret, request.GetCredentialOptions(), request.GetEncryptionConfigs())
 	if err != nil {
 		l.Error("error: converting credential options failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: converting credential options failed: %w", err)
 	}
 
 	plaintexts, annos, err := manager.Rotate(ctx, request.GetResourceId(), opts)
 	if err != nil {
 		l.Error("error: rotate credentials on resource failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: rotate credentials on resource failed: %w", err)
 	}
 
 	pkem, err := crypto.NewEncryptionManager(request.GetCredentialOptions(), request.GetEncryptionConfigs())
 	if err != nil {
 		l.Error("error: creating encryption manager failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: creating encryption manager failed: %w", err)
 	}
 
@@ -76,18 +77,18 @@ func (b *builder) RotateCredential(ctx context.Context, request *v2.RotateCreden
 	for _, plaintextCredential := range plaintexts {
 		encryptedData, err := pkem.Encrypt(ctx, plaintextCredential)
 		if err != nil {
-			b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+			b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 			return nil, err
 		}
 		encryptedDatas = append(encryptedDatas, encryptedData...)
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.RotateCredentialResponse{
+	return v2.RotateCredentialResponse_builder{
 		Annotations:   annos,
 		ResourceId:    request.GetResourceId(),
 		EncryptedData: encryptedDatas,
-	}, nil
+	}.Build(), nil
 }
 
 func (b *builder) addCredentialManager(_ context.Context, typeId string, in interface{}) error {

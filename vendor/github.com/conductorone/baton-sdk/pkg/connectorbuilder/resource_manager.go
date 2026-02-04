@@ -82,17 +82,18 @@ func (b *builder) CreateResource(ctx context.Context, request *v2.CreateResource
 	manager, ok := b.resourceManagers[rt]
 	if !ok {
 		l.Error("error: resource type does not have resource Create() configured", zap.String("resource_type", rt))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Create() configured", rt))
+		err := status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Create() configured", rt))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
+		return nil, err
 	}
-	resource, annos, err := manager.Create(ctx, request.Resource)
+	resource, annos, err := manager.Create(ctx, request.GetResource())
 	if err != nil {
 		l.Error("error: create resource failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: create resource failed: %w", err)
 	}
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.CreateResourceResponse{Created: resource, Annotations: annos}, nil
+	return v2.CreateResourceResponse_builder{Created: resource, Annotations: annos}.Build(), nil
 }
 
 func (b *builder) DeleteResource(ctx context.Context, request *v2.DeleteResourceRequest) (*v2.DeleteResourceResponse, error) {
@@ -114,18 +115,19 @@ func (b *builder) DeleteResource(ctx context.Context, request *v2.DeleteResource
 
 	if !ok {
 		l.Error("error: resource type does not have resource Delete() configured", zap.String("resource_type", rt))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Delete() configured", rt))
+		err := status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Delete() configured", rt))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
+		return nil, err
 	}
 
-	annos, err := rsDeleter.Delete(ctx, request.ResourceId, request.ParentResourceId)
+	annos, err := rsDeleter.Delete(ctx, request.GetResourceId(), request.GetParentResourceId())
 	if err != nil {
 		l.Error("error: deleteV2 resource failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: delete resource failed: %w", err)
 	}
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.DeleteResourceResponse{Annotations: annos}, nil
+	return v2.DeleteResourceResponse_builder{Annotations: annos}.Build(), nil
 }
 
 func (b *builder) DeleteResourceV2(ctx context.Context, request *v2.DeleteResourceV2Request) (*v2.DeleteResourceV2Response, error) {
@@ -147,18 +149,19 @@ func (b *builder) DeleteResourceV2(ctx context.Context, request *v2.DeleteResour
 
 	if !ok {
 		l.Error("error: resource type does not have resource Delete() configured", zap.String("resource_type", rt))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Delete() configured", rt))
+		err := status.Error(codes.Unimplemented, fmt.Sprintf("resource type %s does not have resource Delete() configured", rt))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
+		return nil, err
 	}
 
-	annos, err := rsDeleter.Delete(ctx, request.ResourceId, request.ParentResourceId)
+	annos, err := rsDeleter.Delete(ctx, request.GetResourceId(), request.GetParentResourceId())
 	if err != nil {
 		l.Error("error: deleteV2 resource failed", zap.Error(err))
-		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
+		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start), err)
 		return nil, fmt.Errorf("error: delete resource failed: %w", err)
 	}
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.DeleteResourceV2Response{Annotations: annos}, nil
+	return v2.DeleteResourceV2Response_builder{Annotations: annos}.Build(), nil
 }
 
 func newResourceManager1to2(resourceManager ResourceManagerLimited) ResourceManagerV2Limited {
