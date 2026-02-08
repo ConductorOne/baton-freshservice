@@ -59,6 +59,11 @@ func (f *FreshServiceClient) WithCategoryID(categoryID string) *FreshServiceClie
 	return f
 }
 
+func (f *FreshServiceClient) WithBaseURL(baseURL string) *FreshServiceClient {
+	f.baseUrl = baseURL
+	return f
+}
+
 func (f *FreshServiceClient) GetCategoryID() string {
 	return f.categoryId
 }
@@ -100,7 +105,10 @@ func New(ctx context.Context, freshServiceClient *FreshServiceClient) (*FreshSer
 		return freshServiceClient, err
 	}
 
-	baseUrl := fmt.Sprintf("https://%s.freshservice.com/api/v2", domain)
+	baseUrl := freshServiceClient.baseUrl
+	if baseUrl == "" {
+		baseUrl = fmt.Sprintf("https://%s.freshservice.com/api/v2", domain)
+	}
 	if !isValidUrl(baseUrl) {
 		return nil, fmt.Errorf("the url : %s is not valid", baseUrl)
 	}

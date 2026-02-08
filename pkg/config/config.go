@@ -26,8 +26,12 @@ var (
 		field.WithDisplayName("Category ID"),
 		field.WithDescription("The category id to filter service items to"),
 	)
+	BaseURLField = field.StringField(
+		"base-url",
+		field.WithDescription("Override the Freshservice API URL (for testing)"),
+	)
 	externalTicketField = field.TicketingField.ExportAs(field.ExportTargetGUI)
-	configurationFields = []field.SchemaField{apiKeyField, domainField, categoryField, externalTicketField}
+	configurationFields = []field.SchemaField{apiKeyField, domainField, categoryField, BaseURLField, externalTicketField}
 )
 
 var configRelations = []field.SchemaFieldRelationship{
