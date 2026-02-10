@@ -1,6 +1,6 @@
 ![Baton Logo](./docs/images/baton-logo.png)
 
-# `baton-freshservice` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-freshservice.svg)](https://pkg.go.dev/github.com/conductorone/baton-freshservice) ![main ci](https://github.com/conductorone/baton-freshservice/actions/workflows/main.yaml/badge.svg)
+# `baton-freshservice` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-freshservice.svg)](https://pkg.go.dev/github.com/conductorone/baton-freshservice) ![ci](https://github.com/conductorone/baton-freshservice/actions/workflows/ci.yaml/badge.svg) ![verify](https://github.com/conductorone/baton-freshservice/actions/workflows/verify.yaml/badge.svg)
 
 `baton-freshservice` is a connector for [Freshservice](https://www.freshworks.com/freshservice/) built using the [Baton SDK](https://github.com/conductorone/baton-sdk).
 
@@ -8,20 +8,20 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
-Freshservice is an online IT service with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [https://www.freshworks.com/freshservice/signup/](https://www.freshworks.com/freshservice/signup/). You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. Once you’re done with filling all the details, click on `Try it Free`. 
+Freshservice is an online IT service with a fresh twist. When you sign up for Freshservice, you will be offered a 14-day free trial will all the features. Go to [https://www.freshworks.com/freshservice/signup/](https://www.freshworks.com/freshservice/signup/). You can either sign up using your existing Google account, or create a new account by filling the details mentioned in the sign up form. Once you’re done with filling all the details, click on `Try it Free`.
 
 ## Prerequisites
 
-API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key. 
+API key and domain for your Freshworks account. If you don't already have one follow the steps [here](https://support.freshservice.com/support/solutions/articles/232987-setting-up-your-freshservice-account) to create a fresh service account and get your domain and api key.
 
-Your domain name is the subdomain provided by freshservice. 
+Your domain name is the subdomain provided by freshservice.
 Ex: https://domain.freshservice.com
 
 https://support.freshservice.com -> support
 
 https://solutions.freshservice.com -> solutions
 
-## How to get your Freshservice API key (3 steps) 
+## How to get your Freshservice API key (3 steps)
 
 1.- Log in, then, on the top right corner of Freshservice's homepage, you should see an icon of a person.
 
