@@ -7,10 +7,11 @@ type Freshservice struct {
 	ApiKey string `mapstructure:"api-key"`
 	Domain string `mapstructure:"domain"`
 	CategoryId string `mapstructure:"category-id"`
+	BaseUrl string `mapstructure:"base-url"`
 	Ticketing bool `mapstructure:"ticketing"`
 }
 
-func (c* Freshservice) findFieldByTag(tagValue string) (any, bool) {
+func (c *Freshservice) findFieldByTag(tagValue string) (any, bool) {
 	v := reflect.ValueOf(c).Elem() // Dereference pointer to struct
 	t := v.Type()
 
@@ -42,11 +43,13 @@ func (c *Freshservice) GetString(fieldName string) string {
 	if !ok {
 		return ""
 	}
-	t, ok := v.(string)
-	if !ok {
-		panic("wrong type")
+	if t, ok := v.(string); ok {
+		return t
 	}
-	return t
+	if t, ok := v.([]byte); ok {
+		return string(t)
+	}
+	panic("wrong type")
 }
 
 func (c *Freshservice) GetInt(fieldName string) int {
