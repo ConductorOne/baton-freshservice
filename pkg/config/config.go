@@ -30,6 +30,7 @@ var (
 		"base-url",
 		field.WithDescription("Override the Freshservice API URL (for testing)"),
 		field.WithHidden(true),
+		field.WithExportTarget(field.ExportTargetCLIOnly),
 	)
 	externalTicketField = field.TicketingField.ExportAs(field.ExportTargetGUI)
 	configurationFields = []field.SchemaField{apiKeyField, domainField, categoryField, BaseURLField, externalTicketField}
