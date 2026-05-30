@@ -81,7 +81,7 @@ func getConnector(ctx context.Context, cfg *config.Freshservice) (types.Connecto
 		return nil, fmt.Errorf("invalid subdomain format: %q - should be just the subdomain portion (e.g., 'company' not 'company.freshservice.com')", fsDomain)
 	}
 
-	fsClient = fsClient.WithBearerToken(cfg.ApiKey).WithDomain(fsDomain).WithCategoryID(cfg.CategoryId)
+	fsClient = fsClient.WithBearerToken(cfg.ApiKey).WithDomain(fsDomain).WithCategoryID(cfg.CategoryId).WithBaseURL(cfg.BaseUrl)
 
 	cb, err := connector.New(ctx,
 		cfg.ApiKey,
