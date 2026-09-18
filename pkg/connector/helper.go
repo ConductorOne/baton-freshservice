@@ -30,8 +30,6 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 	}
 
 	userTraits := []rs.UserTraitOption{
-		rs.WithUserProfile(profile),
-		rs.WithStatus(userStatus),
 		rs.WithUserLogin(user.PrimaryEmail),
 		rs.WithEmail(user.PrimaryEmail, true),
 	}
@@ -46,6 +44,8 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 		requesterResourceType,
 		user.ID,
 		userTraits,
+		rs.WithResourceProfile(profile),
+		rs.WithResourceStatus(v2.Status_ResourceStatus(userStatus), ""),
 		rs.WithParentResourceID(parentResourceID))
 	if err != nil {
 		return nil, err
@@ -73,8 +73,6 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 	}
 
 	userTraits := []rs.UserTraitOption{
-		rs.WithUserProfile(profile),
-		rs.WithStatus(userStatus),
 		rs.WithUserLogin(user.Email),
 		rs.WithEmail(user.Email, true),
 		rs.WithLastLogin(user.LastLoginAt),
@@ -90,6 +88,8 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 		agentUserResourceType,
 		user.ID,
 		userTraits,
+		rs.WithResourceProfile(profile),
+		rs.WithResourceStatus(v2.Status_ResourceStatus(userStatus), ""),
 		rs.WithParentResourceID(parentResourceID))
 	if err != nil {
 		return nil, err
@@ -104,12 +104,13 @@ func agentGroupResource(ctx context.Context, group *client.AgentGroup, parentRes
 		"group_id":   group.ID,
 		"group_name": group.Name,
 	}
-	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
+	groupTraitOptions := []rs.GroupTraitOption{}
 	resource, err := rs.NewGroupResource(
 		group.Name,
 		agentGroupResourceType,
 		group.ID,
 		groupTraitOptions,
+		rs.WithResourceProfile(profile),
 		rs.WithParentResourceID(parentResourceID),
 	)
 	if err != nil {
@@ -152,11 +153,10 @@ func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.
 		"role_type":   role.RoleType,
 	}
 
-	roleTraitOptions := []rs.RoleTraitOption{
-		rs.WithRoleProfile(profile),
-	}
+	roleTraitOptions := []rs.RoleTraitOption{}
 
-	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions)
+	resource, err := rs.NewRoleResource(role.Name, resourceTypeRole, role.ID, roleTraitOptions,
+		rs.WithResourceProfile(profile))
 	if err != nil {
 		return nil, err
 	}
@@ -193,12 +193,13 @@ func requesterGroupResource(ctx context.Context, requesterGroup *client.Requeste
 		"requester_group_name": requesterGroup.Name,
 		"requester_group_type": requesterGroup.Type,
 	}
-	groupTraitOptions := []rs.GroupTraitOption{rs.WithGroupProfile(profile)}
+	groupTraitOptions := []rs.GroupTraitOption{}
 	resource, err := rs.NewGroupResource(
 		requesterGroup.Name,
 		resourceTypeRequesterGroup,
 		requesterGroup.ID,
 		groupTraitOptions,
+		rs.WithResourceProfile(profile),
 		rs.WithParentResourceID(parentResourceID),
 	)
 	if err != nil {
