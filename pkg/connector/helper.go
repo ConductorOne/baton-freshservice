@@ -12,7 +12,7 @@ import (
 )
 
 func requesterUserResource(ctx context.Context, user *client.Requesters, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	userStatus := v2.UserTrait_Status_STATUS_ENABLED
+	userStatus := v2.Status_RESOURCE_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
 		"login":      user.PrimaryEmail,
@@ -24,9 +24,9 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 
 	switch user.Active {
 	case true:
-		userStatus = v2.UserTrait_Status_STATUS_ENABLED
+		userStatus = v2.Status_RESOURCE_STATUS_ENABLED
 	case false:
-		userStatus = v2.UserTrait_Status_STATUS_DISABLED
+		userStatus = v2.Status_RESOURCE_STATUS_DISABLED
 	}
 
 	userTraits := []rs.UserTraitOption{
@@ -45,7 +45,7 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 		user.ID,
 		userTraits,
 		rs.WithResourceProfile(profile),
-		rs.WithResourceStatus(v2.Status_ResourceStatus(userStatus), ""),
+		rs.WithResourceStatus(userStatus, ""),
 		rs.WithParentResourceID(parentResourceID))
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func requesterUserResource(ctx context.Context, user *client.Requesters, parentR
 }
 
 func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	userStatus := v2.UserTrait_Status_STATUS_ENABLED
+	userStatus := v2.Status_RESOURCE_STATUS_ENABLED
 	profile := map[string]interface{}{
 		"user_id":    user.ID,
 		"login":      user.Email,
@@ -67,9 +67,9 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 
 	switch user.Active {
 	case true:
-		userStatus = v2.UserTrait_Status_STATUS_ENABLED
+		userStatus = v2.Status_RESOURCE_STATUS_ENABLED
 	case false:
-		userStatus = v2.UserTrait_Status_STATUS_DISABLED
+		userStatus = v2.Status_RESOURCE_STATUS_DISABLED
 	}
 
 	userTraits := []rs.UserTraitOption{
@@ -89,7 +89,7 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 		user.ID,
 		userTraits,
 		rs.WithResourceProfile(profile),
-		rs.WithResourceStatus(v2.Status_ResourceStatus(userStatus), ""),
+		rs.WithResourceStatus(userStatus, ""),
 		rs.WithParentResourceID(parentResourceID))
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func agentResource(ctx context.Context, user *client.Agent, parentResourceID *v2
 
 // Create a new connector resource for FreshService.
 func agentGroupResource(ctx context.Context, group *client.AgentGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	profile := map[string]interface{}{
+	profile := map[string]any{
 		"group_id":   group.ID,
 		"group_name": group.Name,
 	}
@@ -145,8 +145,8 @@ func ConvertPageToken(token string) (int, error) {
 	return strconv.Atoi(token)
 }
 
-func roleResource(ctx context.Context, role *client.Roles, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	profile := map[string]interface{}{
+func roleResource(_ context.Context, role *client.Roles, _ *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]any{
 		"id":          role.ID,
 		"name":        role.Name,
 		"description": role.Description,
@@ -187,8 +187,8 @@ func getToken(pToken *pagination.Token, resourceType *v2.ResourceType) (*paginat
 	return bag, pageToken, nil
 }
 
-func requesterGroupResource(ctx context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	profile := map[string]interface{}{
+func requesterGroupResource(_ context.Context, requesterGroup *client.RequesterGroup, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	profile := map[string]any{
 		"requester_group_id":   requesterGroup.ID,
 		"requester_group_name": requesterGroup.Name,
 		"requester_group_type": requesterGroup.Type,
