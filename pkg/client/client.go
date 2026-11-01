@@ -328,6 +328,9 @@ func (f *FreshServiceClient) doRequest(
 	}
 
 	if err != nil {
+		if replacement := actionableHTTPError(method, endpointUrl, resp, err); replacement != nil {
+			return nil, nil, replacement
+		}
 		return nil, nil, err
 	}
 
