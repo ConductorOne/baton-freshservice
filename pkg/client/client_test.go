@@ -218,6 +218,28 @@ func TestActionableHTTPErrors(t *testing.T) {
 			absent:   []string{"boom", "trailing", "body:"},
 		},
 		{
+			// The SDK's jsonRecord rule also suppresses a leading bracket-array
+			// that quotes strings; the connector must match that posture.
+			name:     "quoted bracket-array body is suppressed with full count",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/plain",
+			body:     `["jane","555-0100"]`,
+			wantCode: codes.NotFound,
+			contains: []string{"body omitted (19 bytes)"},
+			absent:   []string{"jane", "555-0100", "body:"},
+		},
+		{
+			name:     "single-quoted record body is suppressed",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/plain",
+			body:     `{'name': 'jane doe'}`,
+			wantCode: codes.NotFound,
+			contains: []string{"body omitted"},
+			absent:   []string{"jane doe", "body:"},
+		},
+		{
 			name:     "query string in endpoint URL is redacted",
 			method:   http.MethodGet,
 			status:   404,
@@ -307,5 +329,60 @@ func TestActionableHTTPErrors(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestChunkedBodyOmitsFullCount pins the unknown-length (ContentLength == -1)
+// residual: the omission count must reflect the FULL body the SDK's Do
+// already buffered, not the 4 KiB snippet window.
+func TestChunkedBodyOmitsFullCount(t *testing.T) {
+	body := "name,email\n" + strings.Repeat("jane, jane@example.com\n", 400) // 9004 bytes
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// No Content-Length: HTTP/1.1 forces a chunked response, so the
+		// client-side resp.ContentLength is -1.
+		w.Header().Set("Content-Type", "text/csv")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer ts.Close()
+
+	c := newTestClient(ts)
+	err := doReq(t, c, http.MethodGet, ts.URL+"/agents", nil)
+	if err == nil {
+		t.Fatalf("expected non-nil error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, fmt.Sprintf("body omitted (%d bytes)", len(body))) {
+		t.Errorf("message %q missing full chunked-body count %d", msg, len(body))
+	}
+	if strings.Contains(msg, "4096 bytes") || strings.Contains(msg, "jane@example.com") {
+		t.Errorf("message %q must not understate the count or leak the body", msg)
+	}
+}
+
+// TestBodyReadFailurePreservesTransportCause pins the replacement guard: when
+// the error-body read itself fails mid-flight (here the handler dies after a
+// 404 text/html head), the SDK classifies that as a transport error whose
+// gRPC code differs from GrpcCodeFromHTTPStatus(404); the connector must pass
+// that cause through instead of replacing it with a terminal-looking NotFound.
+func TestBodyReadFailurePreservesTransportCause(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("<html>404 page not fo"))
+		panic("handler died mid-body")
+	}))
+	defer ts.Close()
+
+	c := newTestClient(ts)
+	err := doReq(t, c, http.MethodGet, ts.URL+"/agents", nil)
+	if err == nil {
+		t.Fatalf("expected non-nil error")
+	}
+	if code := status.Code(err); code == codes.NotFound {
+		t.Errorf("transport cause was replaced with NotFound: %v", err)
+	}
+	if strings.Contains(err.Error(), "freshservice-connector:") {
+		t.Errorf("transport cause was replaced by the connector: %v", err)
 	}
 }
