@@ -20,7 +20,7 @@ const maxSnippetLength = 256
 
 var (
 	markupTagRe   = regexp.MustCompile(`<[^>]*>`)
-	jsonRecordRe  = regexp.MustCompile(`(?m)^\s*\{\s*"[^"]+"\s*:`)
+	jsonRecordRe  = regexp.MustCompile(`\{\s*"[^"]+"\s*:`)
 	quoteableCTRe = regexp.MustCompile(`^(text/plain|text/html)?$`)
 )
 
@@ -30,7 +30,7 @@ var (
 // host and escaped path are kept for diagnosability.
 func redactedEndpointURL(endpointUrl string) string {
 	u, err := url.Parse(endpointUrl)
-	if err != nil {
+	if err != nil || !u.IsAbs() {
 		return endpointUrl
 	}
 	return u.Scheme + "://" + u.Host + u.EscapedPath()
@@ -82,9 +82,14 @@ func sanitizedBodySnippet(resp *http.Response) string {
 	}
 	s := markupTagRe.ReplaceAllString(string(body), " ")
 	s = html.UnescapeString(s)
+	// Check for JSON-record shapes BEFORE the whitespace collapse, so records
+	// embedded mid-text (e.g. `oops {"request_id": 42}`) are suppressed too.
+	if jsonRecordRe.MatchString(s) {
+		return ""
+	}
 	s = strings.Join(strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsPrint(r) && r != ' ' }), " ")
 	s = strings.Join(strings.Fields(s), " ")
-	if s == "" || strings.HasPrefix(s, "{") || strings.HasPrefix(s, "[") || jsonRecordRe.MatchString(s) || strings.Contains(s, "@") {
+	if s == "" || strings.HasPrefix(s, "{") || strings.HasPrefix(s, "[") || strings.Contains(s, "@") {
 		return ""
 	}
 	r := []rune(s)

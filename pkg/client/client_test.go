@@ -154,13 +154,16 @@ func TestActionableHTTPErrors(t *testing.T) {
 			absent:   []string{"Jane Doe", "jane@example.com", "555-0100", "body:"},
 		},
 		{
+			// Email truncated mid-domain by the 4KiB read boundary AND inside the first
+			// 256 runes: the old emailRe (no TLD match) would quote "admin@examp";
+			// the '@' suppression removes the snippet entirely.
 			name:     "email cut at the 4KiB read boundary is suppressed",
 			method:   http.MethodGet,
 			status:   404,
 			ct:       "text/html",
-			body:     "<html>" + strings.Repeat("x", 4096-len("<html>contact admin@example.com")) + "contact admin@example.com</html>",
+			body:     "<html>contact admin@examp" + strings.Repeat("x", 4096-len("<html>contact admin@examp")),
 			wantCode: codes.NotFound,
-			absent:   []string{"admin@example.com", "@", "body:"},
+			absent:   []string{"admin@examp", "@", "body:"},
 		},
 		{
 			name:     "email in body is redacted",
@@ -170,6 +173,15 @@ func TestActionableHTTPErrors(t *testing.T) {
 			body:     "<html>contact admin@example.com</html>",
 			wantCode: codes.NotFound,
 			absent:   []string{"admin@example.com", "@", "body:"},
+		},
+		{
+			name:     "mid-text JSON record in body is suppressed",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/plain",
+			body:     `oops {"request_id": 42, "secret": "x"} while handling`,
+			wantCode: codes.NotFound,
+			absent:   []string{"request_id", "secret", "body:"},
 		},
 		{
 			name:     "query string in endpoint URL is redacted",
