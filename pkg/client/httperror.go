@@ -20,6 +20,8 @@ const maxSnippetLength = 256
 
 var (
 	markupTagRe   = regexp.MustCompile(`<[^>]*>`)
+	scriptBlockRe = regexp.MustCompile(`(?is)<script\b[^>]*>.*?(?:</script\s*>|$)`)
+	styleBlockRe  = regexp.MustCompile(`(?is)<style\b[^>]*>.*?(?:</style\s*>|$)`)
 	quoteableCTRe = regexp.MustCompile(`^(text/plain|text/html)?$`)
 )
 
@@ -92,19 +94,23 @@ func actionableHTTPError(method, endpointUrl string, resp *http.Response, origEr
 // single-line, sanitized snippet. Only plain-text bodies (absent, text/plain,
 // text/html content types — the SDK's quotableMessage posture) are quoted;
 // any other content type renders as a byte-count omission. The snippet is
-// suppressed when it is empty, matches the SDK's record rule (an object or
-// bracket-array that quotes a string, a single-quoted record, or a record
-// opening after a prefix, at any position — see sdkJsonRecordPattern), or
-// contains an "@" (a strict superset of an email match, so an email split
-// across the read boundary cannot leak). A leading `[` or `{` alone does NOT
+// taken from at most the first 4 KiB of the body, with any <script>/<style>
+// blocks dropped first, and is suppressed when it is empty, matches the
+// SDK's record rule (an object or bracket-array that quotes a string, a
+// single-quoted record, or a record opening after a prefix, at any
+// position — see sdkJsonRecordPattern), or contains an "@" (a strict
+// superset of an email match, so an email split across the snippet window
+// cannot leak). Unlike the SDK's plainPrefix — which quotes only the text
+// before the first tag — this connector's disclosed divergence strips tags
+// and quotes the remaining text nodes, so an HTML error page like
+// "404 page not found" stays actionable. A leading `[` or `{` alone does NOT
 // suppress: only the record rule above suppresses, so plain text like
 // "[ERROR] upstream: timeout" is still quoted, matching the SDK's
 // record-based posture. A record-suppressed or non-quotable body renders
 // "body omitted (N bytes)" with the FULL body size, matching the SDK's
-// quotedBody count. The snippet itself is taken from at most the first
-// 4 KiB of the body (that bound governs what gets quoted, not the count);
-// the SDK's Do has already buffered the whole body into resp.Body, so
-// counting costs one pass over in-memory bytes, never the network.
+// quotedBody count; the snippet bound governs what gets quoted, not the
+// count, and reading the whole body costs one pass over the in-memory bytes
+// the SDK's Do already buffered — never the network.
 func sanitizedBodySnippet(resp *http.Response) string {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -119,7 +125,13 @@ func sanitizedBodySnippet(resp *http.Response) string {
 	if !quoteableCTRe.MatchString(strings.ToLower(strings.TrimSpace(ct[0]))) {
 		return omitted
 	}
-	s := markupTagRe.ReplaceAllString(string(body), " ")
+	snippet := body
+	if len(snippet) > 4<<10 {
+		snippet = snippet[:4<<10]
+	}
+	s := scriptBlockRe.ReplaceAllString(string(snippet), " ")
+	s = styleBlockRe.ReplaceAllString(s, " ")
+	s = markupTagRe.ReplaceAllString(s, " ")
 	s = html.UnescapeString(s)
 	s = strings.Join(strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsPrint(r) && r != ' ' }), " ")
 	s = strings.Join(strings.Fields(s), " ")

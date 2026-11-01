@@ -240,6 +240,19 @@ func TestActionableHTTPErrors(t *testing.T) {
 			absent:   []string{"jane doe", "body:"},
 		},
 		{
+			// <script>/<style> contents are dropped before quoting, so CSS
+			// (@media) or inline JS cannot reach the snippet (which would
+			// also blank it via the '@' rule).
+			name:     "script and style blocks are not quoted",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/html",
+			body:     "<html><style>p { color: red } @media print {}</style>quota exceeded<script>var token = 1;</script></html>",
+			wantCode: codes.NotFound,
+			contains: []string{"quota exceeded"},
+			absent:   []string{"color: red", "@media", "var token"},
+		},
+		{
 			name:     "query string in endpoint URL is redacted",
 			method:   http.MethodGet,
 			status:   404,
