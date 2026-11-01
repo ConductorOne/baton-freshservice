@@ -19,9 +19,10 @@ import (
 const maxSnippetLength = 256
 
 var (
-	markupTagRe   = regexp.MustCompile(`<[^>]*>`)
-	jsonRecordRe  = regexp.MustCompile(`\{\s*"[^"]+"\s*:`)
-	quoteableCTRe = regexp.MustCompile(`^(text/plain|text/html)?$`)
+	markupTagRe      = regexp.MustCompile(`<[^>]*>`)
+	jsonRecordRe     = regexp.MustCompile(`\{\s*"[^"]+"\s*:`)
+	jsonRecordLeadRe = regexp.MustCompile(`^\s*\{\s*"[^"]+"\s*:`)
+	quoteableCTRe    = regexp.MustCompile(`^(text/plain|text/html)?$`)
 )
 
 // redactedEndpointURL strips the query string and userinfo from the endpoint
@@ -68,17 +69,29 @@ func actionableHTTPError(method, endpointUrl string, resp *http.Response) error 
 // renders a single-line, sanitized snippet. Only plain-text bodies (absent,
 // text/plain, text/html content types — the SDK's quotableMessage posture)
 // are quoted; any other content type renders as a byte-count omission. The
-// snippet is suppressed when it is empty, JSON-record-shaped, or contains an
-// "@" (a strict superset of an email match, so an email split across the read
-// boundary cannot leak).
+// snippet is suppressed when it is empty, JSON-record-shaped (a `{"key":`
+// record, at any position — including leading), or contains an "@" (a strict
+// superset of an email match, so an email split across the read boundary
+// cannot leak). A leading `[` or `{` alone does NOT suppress: only the
+// record rule above suppresses, so plain text like "[ERROR] upstream:
+// timeout" is still quoted, matching the SDK's record-based posture.
 func sanitizedBodySnippet(resp *http.Response) string {
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
 	if err != nil {
 		return ""
 	}
+	// The SDK's quotedBody counts the FULL body size (it reads the entire
+	// body), while this connector reads at most 4 KiB. When ContentLength is
+	// known (> 0), report it so the omission count matches the SDK's number;
+	// for unknown lengths (-1, e.g. chunked responses), fall back to the
+	// bytes actually read.
+	bodySize := len(body)
+	if resp.ContentLength > 0 {
+		bodySize = int(resp.ContentLength)
+	}
 	ct := strings.Split(resp.Header.Get("Content-Type"), ";")
 	if !quoteableCTRe.MatchString(strings.ToLower(strings.TrimSpace(ct[0]))) {
-		return " (body omitted (" + strconv.Itoa(len(body)) + " bytes))"
+		return " (body omitted (" + strconv.Itoa(bodySize) + " bytes))"
 	}
 	s := markupTagRe.ReplaceAllString(string(body), " ")
 	s = html.UnescapeString(s)
@@ -89,7 +102,7 @@ func sanitizedBodySnippet(resp *http.Response) string {
 	}
 	s = strings.Join(strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsPrint(r) && r != ' ' }), " ")
 	s = strings.Join(strings.Fields(s), " ")
-	if s == "" || strings.HasPrefix(s, "{") || strings.HasPrefix(s, "[") || strings.Contains(s, "@") {
+	if s == "" || jsonRecordLeadRe.MatchString(s) || strings.Contains(s, "@") {
 		return ""
 	}
 	r := []rune(s)

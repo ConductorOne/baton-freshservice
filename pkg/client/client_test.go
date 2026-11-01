@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -184,6 +186,38 @@ func TestActionableHTTPErrors(t *testing.T) {
 			absent:   []string{"request_id", "secret", "body:"},
 		},
 		{
+			// The omission count must reflect the FULL body size (the SDK's
+			// quotedBody counts the whole body), not the 4 KiB the connector
+			// reads. Content-Length is pinned so resp.ContentLength is known.
+			name:     "oversized csv body omits full byte count",
+			method:   http.MethodGet,
+			status:   403,
+			ct:       "text/csv",
+			body:     "name,email\n" + strings.Repeat("jane, jane@example.com\n", 400),
+			wantCode: codes.PermissionDenied,
+			contains: []string{"403", "body omitted", fmt.Sprintf("%d bytes)", len("name,email\n"+strings.Repeat("jane, jane@example.com\n", 400)))},
+			absent:   []string{"jane@example.com", "4096 bytes", "body:"},
+		},
+		{
+			name:     "plain-text leading-bracket body is quoted",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/plain",
+			body:     "[ERROR] upstream: timeout",
+			wantCode: codes.NotFound,
+			contains: []string{"[ERROR] upstream: timeout"},
+			absent:   []string{"body omitted"},
+		},
+		{
+			name:     "leading JSON record body is suppressed",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/plain",
+			body:     `{"error": "boom"} trailing text`,
+			wantCode: codes.NotFound,
+			absent:   []string{"boom", "trailing", "body:"},
+		},
+		{
 			name:     "query string in endpoint URL is redacted",
 			method:   http.MethodGet,
 			status:   404,
@@ -213,6 +247,7 @@ func TestActionableHTTPErrors(t *testing.T) {
 					w.Header().Set(k, v)
 				}
 				w.Header().Set("Content-Type", tc.ct)
+				w.Header().Set("Content-Length", strconv.Itoa(len(tc.body)))
 				w.WriteHeader(tc.status)
 				_, _ = w.Write([]byte(tc.body))
 			}))
