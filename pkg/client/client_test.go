@@ -6,9 +6,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -39,6 +40,11 @@ func TestActionableHTTPErrors(t *testing.T) {
 		absent   []string
 		exactMsg string
 		res      interface{}
+		endpoint string // overrides the default ts.URL+"/agents" request URL
+		wantFull bool   // assert the full (redacted) endpoint URL appears
+		wantRL   bool   // assert a *v2.RateLimitDescription detail
+		rlStatus v2.RateLimitDescription_Status
+		resetSec int // expected ResetAt ≈ now + resetSec seconds
 	}{
 		{
 			name:     "GET 404 html body becomes actionable",
@@ -47,6 +53,7 @@ func TestActionableHTTPErrors(t *testing.T) {
 			ct:       "text/html; charset=utf-8",
 			body:     "<html><body>404 page not found</body></html>",
 			wantCode: codes.NotFound,
+			wantFull: true,
 			contains: []string{"GET", "/agents", "404", "text/html", "404 page not found", "freshservice-connector:"},
 		},
 		{
@@ -86,10 +93,25 @@ func TestActionableHTTPErrors(t *testing.T) {
 			headers: map[string]string{
 				"X-RateLimit-Remaining": "0",
 				"X-RateLimit-Total":     "100",
-				"Retry-After":           "60000",
+				"Retry-After":           "60",
 			},
 			wantCode: codes.Unavailable,
 			contains: []string{"429"},
+			wantRL:   true,
+			rlStatus: v2.RateLimitDescription_STATUS_OVERLIMIT,
+			resetSec: 60,
+		},
+		{
+			name:     "GET 429 with no rate limit headers gets SDK defaults",
+			method:   http.MethodGet,
+			status:   429,
+			ct:       "text/html",
+			body:     "<html>slow down</html>",
+			wantCode: codes.Unavailable,
+			contains: []string{"429"},
+			wantRL:   true,
+			rlStatus: v2.RateLimitDescription_STATUS_OVERLIMIT,
+			resetSec: 60,
 		},
 		{
 			name:     "DELETE 404 html becomes actionable",
@@ -101,13 +123,64 @@ func TestActionableHTTPErrors(t *testing.T) {
 			contains: []string{"DELETE", "404", "text/html"},
 		},
 		{
+			// DELETE passes no uhttp options, so the JSON error body is not
+			// decoded: today's (and D6's) behavior is the bare status line.
+			name:     "DELETE 404 json keeps bare status line",
+			method:   http.MethodDelete,
+			status:   404,
+			ct:       "application/json",
+			body:     `{"message":"nope"}`,
+			wantCode: codes.NotFound,
+			contains: []string{"404 Not Found"},
+			absent:   []string{"nope"},
+		},
+		{
+			name:     "GET 500 html maps to Unavailable",
+			method:   http.MethodGet,
+			status:   500,
+			ct:       "text/html",
+			body:     "<html>upstream exploded</html>",
+			wantCode: codes.Unavailable,
+			contains: []string{"500", "upstream exploded"},
+		},
+		{
+			name:     "csv error body is omitted not quoted",
+			method:   http.MethodGet,
+			status:   403,
+			ct:       "text/csv",
+			body:     "name,email,phone\nJane Doe,jane@example.com,555-0100",
+			wantCode: codes.PermissionDenied,
+			contains: []string{"403", "body omitted"},
+			absent:   []string{"Jane Doe", "jane@example.com", "555-0100", "body:"},
+		},
+		{
+			name:     "email cut at the 4KiB read boundary is suppressed",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/html",
+			body:     "<html>" + strings.Repeat("x", 4096-len("<html>contact admin@example.com")) + "contact admin@example.com</html>",
+			wantCode: codes.NotFound,
+			absent:   []string{"admin@example.com", "@", "body:"},
+		},
+		{
 			name:     "email in body is redacted",
 			method:   http.MethodGet,
 			status:   404,
 			ct:       "text/html",
 			body:     "<html>contact admin@example.com</html>",
 			wantCode: codes.NotFound,
-			absent:   []string{"admin@example.com", "body:"},
+			absent:   []string{"admin@example.com", "@", "body:"},
+		},
+		{
+			name:     "query string in endpoint URL is redacted",
+			method:   http.MethodGet,
+			status:   404,
+			ct:       "text/html",
+			body:     "<html>gone</html>",
+			endpoint: "/agents?page=2&secret=1",
+			wantCode: codes.NotFound,
+			contains: []string{"GET", "/agents"},
+			absent:   []string{"secret=1", "?", "page=2"},
 		},
 		{
 			name:     "GET 200 text/html success path untouched",
@@ -133,32 +206,40 @@ func TestActionableHTTPErrors(t *testing.T) {
 			}))
 			defer ts.Close()
 
+			ep := ts.URL + "/agents"
+			if tc.endpoint != "" {
+				ep = ts.URL + tc.endpoint
+			}
 			c := newTestClient(ts)
-			err := doReq(t, c, tc.method, ts.URL+"/agents", tc.res)
+			err := doReq(t, c, tc.method, ep, tc.res)
 			if err == nil {
 				t.Fatalf("expected non-nil error")
 			}
 			if tc.wantCode != codes.OK && status.Code(err) != tc.wantCode {
 				t.Fatalf("code = %v, want %v (err: %v)", status.Code(err), tc.wantCode, err)
 			}
+			msg := err.Error()
 			if tc.exactMsg != "" {
 				// The SDK prepends the bare status line to the wrapped error.
-				if !strings.Contains(err.Error(), tc.exactMsg) {
-					t.Fatalf("message = %q, want to contain exactly %q", err.Error(), tc.exactMsg)
+				if !strings.Contains(msg, tc.exactMsg) {
+					t.Fatalf("message = %q, want to contain exactly %q", msg, tc.exactMsg)
 				}
 				return
 			}
 			for _, want := range tc.contains {
-				if !contains(err.Error(), want) {
-					t.Errorf("message %q missing %q", err.Error(), want)
+				if !strings.Contains(msg, want) {
+					t.Errorf("message %q missing %q", msg, want)
 				}
 			}
 			for _, absent := range tc.absent {
-				if contains(err.Error(), absent) {
-					t.Errorf("message %q must not contain %q", err.Error(), absent)
+				if strings.Contains(msg, absent) {
+					t.Errorf("message %q must not contain %q", msg, absent)
 				}
 			}
-			if tc.wantCode == codes.Unavailable && tc.status == 429 {
+			if tc.wantFull && !strings.Contains(msg, ep) {
+				t.Errorf("message %q missing full endpoint URL %q", msg, ep)
+			}
+			if tc.wantRL {
 				details := status.Convert(err).Details()
 				if len(details) != 1 {
 					t.Fatalf("expected exactly 1 detail, got %d", len(details))
@@ -167,14 +248,17 @@ func TestActionableHTTPErrors(t *testing.T) {
 				if !ok {
 					t.Fatalf("detail type = %T, want *v2.RateLimitDescription", details[0])
 				}
-				if rl.GetRemaining() != 0 || rl.GetLimit() != 100 {
-					t.Errorf("rate limit detail = %+v, want remaining 0 limit 100", rl)
+				if rl.GetStatus() != tc.rlStatus {
+					t.Errorf("rate limit status = %v, want %v", rl.GetStatus(), tc.rlStatus)
+				}
+				if tc.resetSec != 0 {
+					want := time.Now().Add(time.Duration(tc.resetSec) * time.Second)
+					reset := rl.GetResetAt().AsTime()
+					if reset.Before(want.Add(-30*time.Second)) || reset.After(want.Add(30*time.Second)) {
+						t.Errorf("resetAt = %v, want within 30s of %v", reset, want)
+					}
 				}
 			}
 		})
 	}
-}
-
-func contains(s, sub string) bool {
-	return len(s) >= len(sub) && strings.Contains(s, sub)
 }
